@@ -1,12 +1,13 @@
 name: build-ksu-kernel
 
-# 在免费 runner 上完整构建 OnePlus 13T 内核（官方 35 依赖 + SukiSU 内置）
+# 在免费 runner 上完整构建 OnePlus 13T 内核（官方 35 依赖 + SukiSU + SUSFS 内置）
 #
 # 关键取舍：
 #  - 跳过 vendor 模块编译（RECOMPILE_EXT_MODULE=0），只出 kernel + boot.img。
-#    本地参照：全量 3h12m，其中 359 个 vendor ko 占约 2 小时。
-#  - 编译前先单独生成 .config 验证 CONFIG_KSU=y，避免白跑 3 小时。
+#    本地参照：全量 3h12m，其中 359 个 vendor ko 占约 2 小时，且对 boot.img 无贡献。
+#  - 编译前先单独生成 .config 验证 CONFIG_KSU / CONFIG_KSU_SUSFS 生效，避免白跑 3 小时。
 #  - runner 在海外，35 个依赖直接从 GitHub / CodeLinaro 原站下载，不用任何加速前缀。
+#  - GitHub 的 /archive/<sha>.tar.gz 非确定性打包，故以"能完整解压"而非字节数作完整性判据。
 
 on:
   workflow_dispatch:
@@ -15,10 +16,14 @@ on:
         description: 'SukiSU 分支或 tag'
         required: false
         default: 'main'
-      skip_build:
-        description: '只做下载装配与配置验证（true/false）'
+      susfs_branch:
+        description: 'susfs4oki 分支'
         required: false
-        default: 'false'
+        default: 'oki-android15-6.6'
+      skip_build:
+        description: '只做装配与配置验证（不编译）'
+        required: false
+        default: 'true'
 
 jobs:
   build:
@@ -44,8 +49,8 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
-            git python3 python3-pip bison flex libelf-dev libssl-dev bc cpio rsync unzip zip \
-            dwarves lz4 device-tree-compiler
+            git python3 bison flex libelf-dev libssl-dev bc cpio rsync unzip zip \
+            dwarves lz4 device-tree-compiler patch
           python3 --version
 
       - name: 下载并装配官方依赖
@@ -66,34 +71,66 @@ jobs:
           echo "kernelsu 文件数: $(find "$K/common/drivers/kernelsu" -type f | wc -l)"
           grep -q kernelsu "$K/common/drivers/Makefile" || printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> "$K/common/drivers/Makefile"
           grep -q 'drivers/kernelsu/Kconfig' "$K/common/drivers/Kconfig" || sed -i '/^endmenu/i source "drivers/kernelsu/Kconfig"' "$K/common/drivers/Kconfig"
-          tail -2 "$K/common/drivers/Makefile"
-          grep -n kernelsu "$K/common/drivers/Kconfig"
 
-      - name: 注入 KSU 配置
+      - name: 应用 SUSFS 补丁
         run: |
           set -e
           K="$TREE_ROOT/kernel_platform"
+          U="https://raw.githubusercontent.com/cctv18/susfs4oki/${{ inputs.susfs_branch }}/kernel_patches/50_add_susfs_in_gki-android15-6.6.patch"
+          curl -LSs --retry 3 -o /mnt/work/susfs.patch "$U"
+          echo "补丁大小: $(wc -c < /mnt/work/susfs.patch) 字节"
+          cd "$K/common"
+          if ! patch -p1 --dry-run < /mnt/work/susfs.patch > /mnt/work/susfs-dryrun.log 2>&1; then
+            echo "::warning::SUSFS 补丁 dry-run 未完全通过，尝试 --forward 继续"
+            tail -30 /mnt/work/susfs-dryrun.log
+          fi
+          patch -p1 --forward --batch < /mnt/work/susfs.patch 2>&1 | tee /mnt/work/susfs-apply.log | tail -20
+          echo "--- 是否产生 .rej ---"
+          find . -name '*.rej' | head -20
+          test -z "$(find . -name '*.rej' | head -1)" || { echo "::error::SUSFS 补丁有冲突"; exit 1; }
+
+      - name: 注入 KSU / SUSFS 配置
+        run: |
+          set -e
+          K="$TREE_ROOT/kernel_platform"
+          cat > /mnt/work/ksu.fragment <<'EOF'
+          CONFIG_KSU=y
+          CONFIG_KSU_SUSFS=y
+          CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y
+          CONFIG_KSU_SUSFS_SUS_PATH=y
+          CONFIG_KSU_SUSFS_SUS_MOUNT=y
+          CONFIG_KSU_SUSFS_SUS_KSTAT=y
+          CONFIG_KSU_SUSFS_TRY_UMOUNT=y
+          CONFIG_KSU_SUSFS_SPOOF_UNAME=y
+          CONFIG_KSU_SUSFS_ENABLE_LOG=y
+          CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y
+          CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y
+          CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
+          CONFIG_KSU_SUSFS_SUS_MAP=y
+          EOF
           for f in "$K/msm-kernel/arch/arm64/configs/gki_defconfig" "$K/common/arch/arm64/configs/gki_defconfig"; do
             [ -f "$f" ] || continue
-            grep -q '^CONFIG_KSU=y' "$f" || printf '\nCONFIG_KSU=y\n' >> "$f"
+            while read -r line; do
+              [ -z "$line" ] && continue
+              key="${line%%=*}"
+              grep -q "^$key=" "$f" || echo "$line" >> "$f"
+            done < /mnt/work/ksu.fragment
             echo "已注入: $f"
           done
 
-      - name: 配置门禁（必须看到 CONFIG_KSU=y）
+      - name: 配置门禁（必须看到 CONFIG_KSU 与 SUSFS）
         run: |
           set -e
           K="$TREE_ROOT/kernel_platform"
           cd "$K"
           export PATH="$K/prebuilts/build-tools/path/linux-x86:$PATH"
-          ./tools/bazel build //msm-kernel:sun_perf_config 2>&1 | tail -25
+          ./tools/bazel build //msm-kernel:sun_perf_config 2>&1 | tail -20
           CFG=$(find bazel-bin -name '.config' -path '*sun_perf*' 2>/dev/null | head -1)
           echo "配置文件: $CFG"
-          if [ -z "$CFG" ]; then
-            echo "::error::没找到生成的 .config"
-            exit 1
-          fi
-          echo "--- KSU 相关配置 ---"
+          [ -n "$CFG" ] || { echo "::error::没找到生成的 .config"; exit 1; }
+          echo "--- KSU / SUSFS 配置 ---"
           grep -E 'CONFIG_KSU' "$CFG" || { echo "::error::CONFIG_KSU 未生效"; exit 1; }
+          grep -q '^CONFIG_KSU=y' "$CFG" || { echo "::error::CONFIG_KSU 未开启"; exit 1; }
           cp "$CFG" /mnt/work/config-check.txt
 
       - name: 编译内核（跳过 vendor 模块）
@@ -106,10 +143,8 @@ jobs:
           export RECOMPILE_EXT_MODULE=0
           mkdir -p out/target/product/sun
           bash kernel_platform/oplus/build/oplus_build_kernel.sh sun perf 2>&1 | tee /mnt/work/build.log | tail -60
-          echo "--- 产物 ---"
-          ls -l kernel_platform/out/msm-kernel-sun-perf/dist/boot.img \
-                kernel_platform/out/msm-kernel-sun-perf/dist/Image 2>/dev/null || {
-            echo "::error::没有产出 boot.img"; exit 1; }
+          D="$T/kernel_platform/out/msm-kernel-sun-perf/dist"
+          ls -l "$D/boot.img" "$D/Image" || { echo "::error::没有产出 boot.img"; exit 1; }
 
       - name: 校验产物
         if: ${{ inputs.skip_build == 'false' }}
@@ -118,10 +153,9 @@ jobs:
           cd "$D"
           sha256sum boot.img Image > SHA256SUMS.txt
           cat SHA256SUMS.txt
-          echo "--- 内核版本串 ---"
           strings Image | grep -m2 'Linux version 6.6'
-          echo "--- KSU 符号 ---"
-          grep -c ksu System.map || echo "System.map 中 ksu 符号数: 0"
+          echo "--- KSU 符号数 ---"
+          grep -c -i ksu System.map || true
 
       - name: 上传产物
         if: always()
@@ -135,5 +169,6 @@ jobs:
             /mnt/work/official-13t/kernel_platform/out/msm-kernel-sun-perf/dist/SHA256SUMS.txt
             /mnt/work/config-check.txt
             /mnt/work/build.log
+            /mnt/work/susfs-apply.log
           if-no-files-found: warn
           retention-days: 7
