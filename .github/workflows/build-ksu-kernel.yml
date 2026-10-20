@@ -1,13 +1,23 @@
 name: build-ksu-kernel
 
-# 在免费 runner 上完整构建 OnePlus 13T 内核（官方 35 依赖 + SukiSU + SUSFS 内置）
+# 在免费 runner 上构建 OnePlus 13T 内核（官方 35 依赖 + SukiSU 内置）
 #
 # 关键取舍：
 #  - 跳过 vendor 模块编译（RECOMPILE_EXT_MODULE=0），只出 kernel + boot.img。
 #    本地参照：全量 3h12m，其中 359 个 vendor ko 占约 2 小时，且对 boot.img 无贡献。
-#  - 编译前先单独生成 .config 验证 CONFIG_KSU / CONFIG_KSU_SUSFS 生效，避免白跑 3 小时。
+#  - 使用官方默认 defconfig 流程（与本地 3h12m 构建一致），只精准 append 必要项，
+#    不替换整份 device-config，避免引入未知差异。
+#  - 编译前先单独生成 .config 做门禁校验，避免白跑。
 #  - runner 在海外，35 个依赖直接从 GitHub / CodeLinaro 原站下载，不用任何加速前缀。
 #  - GitHub 的 /archive/<sha>.tar.gz 非确定性打包，故以"能完整解压"而非字节数作完整性判据。
+#
+# 本版核心修复：
+#  CONFIG_MODULE_SIG_PROTECT=n
+#    根因：vendor 模块（rfkill.ko 等）用 OPPO 私钥签名，自编译内核无对应 trusted key，
+#    签名校验失败（mod->sig_ok=false）。kernel/module/main.c 中
+#    "if (!mod->sig_ok && gki_is_module_protected_export(...))" 会拒绝其导出，
+#    导致 rfkill -> cfg80211 -> mac80211 -> qca_cld3 整链加载失败，WiFi/蓝牙不可用。
+#    关掉该保护后 gki_is_module_protected_export() 恒返回 false，整链放行。
 
 on:
   workflow_dispatch:
@@ -16,6 +26,10 @@ on:
         description: 'SukiSU 分支或 tag'
         required: false
         default: 'main'
+      enable_susfs:
+        description: '是否集成 SUSFS（false 先验证核心功能）'
+        required: false
+        default: 'false'
       susfs_branch:
         description: 'susfs4oki 分支'
         required: false
@@ -72,7 +86,8 @@ jobs:
           grep -q kernelsu "$K/common/drivers/Makefile" || printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> "$K/common/drivers/Makefile"
           grep -q 'drivers/kernelsu/Kconfig' "$K/common/drivers/Kconfig" || sed -i '/^endmenu/i source "drivers/kernelsu/Kconfig"' "$K/common/drivers/Kconfig"
 
-      - name: 应用 SUSFS 补丁
+      - name: 应用 SUSFS 补丁（可选）
+        if: ${{ inputs.enable_susfs == 'true' }}
         run: |
           set -e
           K="$TREE_ROOT/kernel_platform"
@@ -80,21 +95,26 @@ jobs:
           curl -LSs --retry 3 -o /mnt/work/susfs.patch "$U"
           echo "补丁大小: $(wc -c < /mnt/work/susfs.patch) 字节"
           cd "$K/common"
-          if ! patch -p1 --dry-run < /mnt/work/susfs.patch > /mnt/work/susfs-dryrun.log 2>&1; then
-            echo "::warning::SUSFS 补丁 dry-run 未完全通过，尝试 --forward 继续"
-            tail -30 /mnt/work/susfs-dryrun.log
+          patch -p1 --forward --batch < /mnt/work/susfs.patch 2>&1 | tee /mnt/work/susfs-apply.log | tail -30
+          REJECTS=$(find . -name '*.rej' | wc -l)
+          echo "rej 文件数: $REJECTS"
+          if [ "$REJECTS" -gt 0 ]; then
+            echo "::warning::SUSFS 补丁有 $REJECTS 个冲突，列出如下："
+            find . -name '*.rej' | head -20
+            echo "::error::SUSFS 补丁不完整，停止"
+            exit 1
           fi
-          patch -p1 --forward --batch < /mnt/work/susfs.patch 2>&1 | tee /mnt/work/susfs-apply.log | tail -20
-          echo "--- 是否产生 .rej ---"
-          find . -name '*.rej' | head -20
-          test -z "$(find . -name '*.rej' | head -1)" || { echo "::error::SUSFS 补丁有冲突"; exit 1; }
 
-      - name: 注入 KSU / SUSFS 配置
+      - name: 注入内核配置
         run: |
           set -e
           K="$TREE_ROOT/kernel_platform"
-          cat > /mnt/work/ksu.fragment <<'EOF'
+          cat > /mnt/work/inject.fragment <<'EOF'
           CONFIG_KSU=y
+          # CONFIG_MODULE_SIG_PROTECT is not set
+          EOF
+          if [ "${{ inputs.enable_susfs }}" = "true" ]; then
+            cat >> /mnt/work/inject.fragment <<'EOF'
           CONFIG_KSU_SUSFS=y
           CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y
           CONFIG_KSU_SUSFS_SUS_PATH=y
@@ -108,17 +128,20 @@ jobs:
           CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
           CONFIG_KSU_SUSFS_SUS_MAP=y
           EOF
+          fi
           for f in "$K/msm-kernel/arch/arm64/configs/gki_defconfig" "$K/common/arch/arm64/configs/gki_defconfig"; do
             [ -f "$f" ] || continue
-            while read -r line; do
+            while IFS= read -r line; do
               [ -z "$line" ] && continue
-              key="${line%%=*}"
-              grep -q "^$key=" "$f" || echo "$line" >> "$f"
-            done < /mnt/work/ksu.fragment
+              key="$(echo "$line" | sed 's/^# \([A-Za-z0-9_]*\) is not set/\1/; s/=.*//')"
+              sed -i "/^${key}=/d; /^# ${key} is not set/d" "$f"
+              echo "$line" >> "$f"
+            done < /mnt/work/inject.fragment
             echo "已注入: $f"
+            tail -3 "$f"
           done
 
-      - name: 配置门禁（必须看到 CONFIG_KSU 与 SUSFS）
+      - name: 配置门禁
         run: |
           set -e
           K="$TREE_ROOT/kernel_platform"
@@ -128,10 +151,15 @@ jobs:
           CFG=$(find bazel-bin -name '.config' -path '*sun_perf*' 2>/dev/null | head -1)
           echo "配置文件: $CFG"
           [ -n "$CFG" ] || { echo "::error::没找到生成的 .config"; exit 1; }
-          echo "--- KSU / SUSFS 配置 ---"
-          grep -E 'CONFIG_KSU' "$CFG" || { echo "::error::CONFIG_KSU 未生效"; exit 1; }
-          grep -q '^CONFIG_KSU=y' "$CFG" || { echo "::error::CONFIG_KSU 未开启"; exit 1; }
           cp "$CFG" /mnt/work/config-check.txt
+          echo "=== 关键配置校验 ==="
+          grep -E '^CONFIG_KSU' "$CFG" || { echo "::error::CONFIG_KSU 未生效"; exit 1; }
+          grep -q '^CONFIG_KSU=y' "$CFG" || { echo "::error::CONFIG_KSU 未开启"; exit 1; }
+          if grep -q '^CONFIG_MODULE_SIG_PROTECT=y' "$CFG"; then
+            echo "::error::MODULE_SIG_PROTECT 仍为 y，WiFi 会失效"; exit 1
+          fi
+          echo "OK: MODULE_SIG_PROTECT 已关闭"
+          grep -E '^CONFIG_MODULE_SIG=|^CONFIG_MODULE_SIG_FORCE|^CONFIG_RFKILL=' "$CFG" || true
 
       - name: 编译内核（跳过 vendor 模块）
         if: ${{ inputs.skip_build == 'false' }}
@@ -156,6 +184,7 @@ jobs:
           strings Image | grep -m2 'Linux version 6.6'
           echo "--- KSU 符号数 ---"
           grep -c -i ksu System.map || true
+          cp SHA256SUMS.txt /mnt/work/ 2>/dev/null || true
 
       - name: 上传产物
         if: always()
