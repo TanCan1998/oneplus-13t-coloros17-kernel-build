@@ -45,21 +45,48 @@ def archive_ok(path):
         return False
 
 
+def sha256_of(path):
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(8 * 1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def verify(d, dst):
+    """镜像源（Release）确定性下载，严格校验字节数 + SHA256。
+
+    其他源（GitHub /archive/<sha>.tar.gz）非确定性打包，字节数会漂移，
+    只能以"能完整解压"作为完整性判据（gzip CRC 会兜底传输损坏）。
+    """
+    if d.get("source") == "release-mirror":
+        if dst.stat().st_size != d["bytes"]:
+            return f"大小不符 {dst.stat().st_size} != {d['bytes']}"
+        actual = sha256_of(dst)
+        if actual != d["sha256"]:
+            return f"SHA256 不符 {actual[:16]} != {d['sha256'][:16]}"
+        return None
+    if not archive_ok(dst):
+        return "解压校验失败"
+    return None
+
+
 def download(d):
     dst = archive_name(d)
-    if dst.exists() and archive_ok(dst):
-        return d["name"], "cached", dst.stat().st_size
     if dst.exists():
+        if verify(d, dst) is None:
+            return d["name"], "cached", dst.stat().st_size
         dst.unlink()
     last = None
     for attempt in range(4):
         try:
             req = urllib.request.Request(d["url"], headers={"User-Agent": "curl/8.4.0"})
-            with urllib.request.urlopen(req, timeout=900) as r, dst.open("wb") as f:
+            with urllib.request.urlopen(req, timeout=1800) as r, dst.open("wb") as f:
                 shutil.copyfileobj(r, f, 4 * 1024 * 1024)
-            if archive_ok(dst):
+            problem = verify(d, dst)
+            if problem is None:
                 return d["name"], "ok", dst.stat().st_size
-            last = "解压校验失败"
+            last = problem
         except Exception as e:  # noqa: BLE001
             last = str(e)[:120]
         time.sleep(3 * (attempt + 1))
@@ -71,11 +98,15 @@ with ThreadPoolExecutor(max_workers=8) as ex:
     results = list(ex.map(download, deps))
 print(f"下载完成 {len(results)} 个，用时 {time.time()-t0:.1f}s", flush=True)
 
-drift = [(d, size) for d, (_, _, size) in zip(deps, results) if size != d["bytes"]]
+drift = [(d, size) for d, (_, _, size) in zip(deps, results)
+         if size != d["bytes"] and d.get("source") != "release-mirror"]
 if drift:
-    print(f"注意：{len(drift)} 个归档字节数与本地记录不同（GitHub 打包非确定性，属正常）：", flush=True)
+    print(f"注意：{len(drift)} 个 GitHub 归档字节数与本地记录不同（打包非确定性，属正常）：", flush=True)
     for d, size in drift[:10]:
         print(f"  {d['name']}: {size} vs {d['bytes']} ({(size-d['bytes'])/d['bytes']*100:+.2f}%)", flush=True)
+
+mirrored = [d for d in deps if d.get("source") == "release-mirror"]
+print(f"其中 {len(mirrored)} 个走 Release 镜像，已逐个校验字节数与 SHA256", flush=True)
 
 deps_sorted = sorted(deps, key=lambda d: (d["path"] != "./", d["path"]))
 
