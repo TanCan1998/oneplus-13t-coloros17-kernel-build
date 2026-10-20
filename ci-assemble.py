@@ -153,13 +153,28 @@ def assemble(d):
 for d in deps_sorted:
     assemble(d)
 
-for link, target in [
+# prepare_vendor.sh 会在真正构建时创建这些链接，但配置门禁步骤直接调 bazel，
+# 跳过了它，所以必须自己建，否则 bazel 报
+# "cannot load '//build:msm_kernel_extensions.bzl': no such file"
+links = [
     ("kernel_platform/.source_date_epoch_dir", "common"),
     ("kernel_platform/build_with_bazel.py", "msm-kernel/build_with_bazel.py"),
-]:
+    ("kernel_platform/build/msm_kernel_extensions.bzl",
+     "../msm-kernel/msm_kernel_extensions.bzl"),
+    ("kernel_platform/build/abl_extensions.bzl",
+     "../bootable/bootloader/edk2/abl_extensions.bzl"),
+]
+for link, target in links:
     p = ROOT / link
-    if not os.path.lexists(p):
-        p.symlink_to(target)
+    if os.path.lexists(p):
+        continue
+    src = (p.parent / target)
+    if not src.exists():
+        print(f"跳过软链接（源不存在）: {link}", flush=True)
+        continue
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.symlink_to(target)
+    print(f"建立软链接: {link} -> {target}", flush=True)
 
 free = shutil.disk_usage(ROOT).free / 1024**3
 print(f"装配完成，剩余空间 {free:.1f} GiB", flush=True)
