@@ -134,12 +134,28 @@ jobs:
         run: |
           set -e
           K="$TREE_ROOT/kernel_platform"
-          cat > /mnt/work/inject.fragment <<'EOF'
-          CONFIG_KSU=y
-          # CONFIG_MODULE_SIG_PROTECT is not set
-          EOF
+          # 不能往 gki_defconfig 追加"等于默认值"的配置行。
+          # 实测 run 39447741702 报错: savedefconfig does not match .../gki_defconfig，
+          # 反推出的 defconfig 里恰好少了这两行，原因是二者都等于 Kconfig 默认值：
+          #   CONFIG_KSU               -> SukiSU 的 kernel/Kconfig 里 default y
+          #   CONFIG_MODULE_SIG_PROTECT-> kernel/module/Kconfig 无 default，即默认 n
+          # Kleaf 的 KernelConfig 会用 savedefconfig 反推结果与源 defconfig 严格逐行比对，
+          # 多余行被丢弃 → 直接中断构建。
+          # 正确做法：
+          #   KSU        -> 靠 default y 自动开启，defconfig 里不写
+          #   SIG_PROTECT-> 只需把源文件里那行 =y 删掉，删掉即回到默认 n
+          for f in "$K/common/arch/arm64/configs/gki_defconfig" \
+                   "$K/msm-kernel/arch/arm64/configs/gki_defconfig"; do
+            [ -f "$f" ] || continue
+            sed -i '/^CONFIG_MODULE_SIG_PROTECT=y$/d' "$f"
+            sed -i '/^# CONFIG_MODULE_SIG_PROTECT is not set$/d' "$f"
+            if grep -q 'MODULE_SIG_PROTECT' "$f"; then
+              echo "::error::$f 仍残留 MODULE_SIG_PROTECT"; exit 1
+            fi
+            echo "已清理: $f"
+          done
           if [ "${{ inputs.enable_susfs }}" = "true" ]; then
-            cat >> /mnt/work/inject.fragment <<'EOF'
+            cat > /mnt/work/inject.fragment <<'EOF'
           CONFIG_KSU_SUSFS=y
           CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y
           CONFIG_KSU_SUSFS_SUS_PATH=y
@@ -153,24 +169,17 @@ jobs:
           CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
           CONFIG_KSU_SUSFS_SUS_MAP=y
           EOF
-          fi
-          # 必须同时注入 common 的 gki_defconfig：
-          # CONFIG_MODULE_SIG_PROTECT=y 原本写在 common/arch/arm64/configs/gki_defconfig。
-          # 只改 msm-kernel 那份不影响内核本体，编出的 Image 仍带 verify_exported_symbols()
-          # 的导出保护检查，GKI 模块（rfkill 等）会因 "exports protected symbol" 被拒，
-          # 进而 cfg80211/mac80211/qca_cld3 连锁失败，最终没有 wlan0。
-          for f in "$K/msm-kernel/arch/arm64/configs/gki_defconfig" \
-                   "$K/common/arch/arm64/configs/gki_defconfig"; do
-            [ -f "$f" ] || continue
+            # SUSFS 补丁只打在 common，配置也只写 common；
+            # 这些选项默认均为 n，与默认值不同，可安全写入 defconfig 而不破坏 savedefconfig 比对。
+            f="$K/common/arch/arm64/configs/gki_defconfig"
             while IFS= read -r line; do
               [ -z "$line" ] && continue
               key="$(echo "$line" | sed 's/^# \([A-Za-z0-9_]*\) is not set/\1/; s/=.*//')"
               sed -i "/^${key}=/d; /^# ${key} is not set/d" "$f"
               echo "$line" >> "$f"
             done < /mnt/work/inject.fragment
-            echo "已注入: $f"
-            tail -3 "$f"
-          done
+            echo "已注入 SUSFS 配置: $f"
+          fi
 
       - name: 配置门禁
         run: |
@@ -178,7 +187,21 @@ jobs:
           K="$TREE_ROOT/kernel_platform"
           cd "$K"
           export PATH="$K/prebuilts/build-tools/path/linux-x86:$PATH"
-          ./tools/bazel build //msm-kernel:sun_perf_config 2>&1 | tail -20
+          # 两个 config 目标都要过：Image 由 common 编出，sun_perf 只决定 msm-kernel 侧配置。
+          # 只编 sun_perf 会漏掉 common 的 savedefconfig 一致性检查（上次就是这样白等一小时）。
+          ./tools/bazel build //common:kernel_aarch64_config //msm-kernel:sun_perf_config 2>&1 | tail -30
+          CCFG="$K/bazel-bin/common/kernel_aarch64_config/out_dir/.config"
+          [ -f "$CCFG" ] || CCFG=$(find -L "$K/bazel-bin" -path '*common*kernel_aarch64_config*' -name '.config' 2>/dev/null | head -1)
+          echo "common 配置: $CCFG"
+          [ -n "$CCFG" ] && [ -f "$CCFG" ] || { echo "::error::没找到 common 生成的 .config"; exit 1; }
+          cp "$CCFG" /mnt/work/config-common.txt
+          echo "=== common 关键配置 ==="
+          grep -E '^CONFIG_KSU(=|_)|MODULE_SIG_PROTECT|^CONFIG_KPROBES=|^CONFIG_EXT4_FS=' "$CCFG" | head -12
+          grep -q '^CONFIG_KSU=y' "$CCFG" || { echo "::error::common 内核未开启 CONFIG_KSU"; exit 1; }
+          if grep -q '^CONFIG_MODULE_SIG_PROTECT=y' "$CCFG"; then
+            echo "::error::common 内核 MODULE_SIG_PROTECT 仍为 y，WiFi 会失效"; exit 1
+          fi
+          echo "OK: common 内核已带 KSU 且无导出保护"
           # bazel-bin 是指向 output_base 的符号链接，find 默认不跟随，必须加 -L
           CFG="$K/bazel-bin/msm-kernel/sun_perf_config/out_dir/.config"
           if [ ! -f "$CFG" ]; then
