@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""在 CI 里下载官方 35 个依赖并装配成 kernel_platform 构建树。"""
+"""在 CI 里下载官方 35 个依赖并装配成 kernel_platform 构建树。
+
+注意：GitHub 的 /archive/<sha>.tar.gz 不是确定性输出——同一 commit 每次打包
+字节数会变（gzip 元数据差异）。因此这里不比对精确字节数，改为"能完整解压"
+作为完整性判据（gzip CRC 会兜底传输损坏），并记录实际大小与预期差异。
+"""
 import copy
 import hashlib
 import json
@@ -19,26 +24,42 @@ DEPS = Path("deps.json")
 ARCH.mkdir(parents=True, exist_ok=True)
 ROOT.mkdir(parents=True, exist_ok=True)
 deps = json.loads(DEPS.read_text(encoding="utf-8"))
-print(f"依赖 {len(deps)} 个，共 {sum(d['bytes'] for d in deps)/1024**3:.2f} GiB", flush=True)
+print(f"依赖 {len(deps)} 个，预期共 {sum(d['bytes'] for d in deps)/1024**3:.2f} GiB", flush=True)
 
 
 def archive_name(d):
     return ARCH / (d["name"].replace("/", "_") + ".tar.gz")
 
 
+def archive_ok(path):
+    """能被 tar 完整读取且至少有一个成员，即认为归档完好。"""
+    try:
+        with tarfile.open(path, "r|gz") as tf:
+            first = tf.next()
+            if first is None:
+                return False
+            for _ in tf:
+                pass
+        return True
+    except Exception:
+        return False
+
+
 def download(d):
     dst = archive_name(d)
-    if dst.exists() and dst.stat().st_size == d["bytes"]:
-        return d["name"], dst, "cached"
+    if dst.exists() and archive_ok(dst):
+        return d["name"], "cached", dst.stat().st_size
+    if dst.exists():
+        dst.unlink()
     last = None
     for attempt in range(4):
         try:
             req = urllib.request.Request(d["url"], headers={"User-Agent": "curl/8.4.0"})
-            with urllib.request.urlopen(req, timeout=600) as r, dst.open("wb") as f:
+            with urllib.request.urlopen(req, timeout=900) as r, dst.open("wb") as f:
                 shutil.copyfileobj(r, f, 4 * 1024 * 1024)
-            if dst.stat().st_size == d["bytes"]:
-                return d["name"], dst, "ok"
-            last = f"大小不符 {dst.stat().st_size} != {d['bytes']}"
+            if archive_ok(dst):
+                return d["name"], "ok", dst.stat().st_size
+            last = "解压校验失败"
         except Exception as e:  # noqa: BLE001
             last = str(e)[:120]
         time.sleep(3 * (attempt + 1))
@@ -50,7 +71,12 @@ with ThreadPoolExecutor(max_workers=8) as ex:
     results = list(ex.map(download, deps))
 print(f"下载完成 {len(results)} 个，用时 {time.time()-t0:.1f}s", flush=True)
 
-# 先装根目录项目，避免后续文件冲突判断
+drift = [(d, size) for d, (_, _, size) in zip(deps, results) if size != d["bytes"]]
+if drift:
+    print(f"注意：{len(drift)} 个归档字节数与本地记录不同（GitHub 打包非确定性，属正常）：", flush=True)
+    for d, size in drift[:10]:
+        print(f"  {d['name']}: {size} vs {d['bytes']} ({(size-d['bytes'])/d['bytes']*100:+.2f}%)", flush=True)
+
 deps_sorted = sorted(deps, key=lambda d: (d["path"] != "./", d["path"]))
 
 
