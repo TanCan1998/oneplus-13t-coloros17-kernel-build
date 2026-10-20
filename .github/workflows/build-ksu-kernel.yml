@@ -158,9 +158,13 @@ jobs:
           cd "$K"
           export PATH="$K/prebuilts/build-tools/path/linux-x86:$PATH"
           ./tools/bazel build //msm-kernel:sun_perf_config 2>&1 | tail -20
-          CFG=$(find bazel-bin -name '.config' -path '*sun_perf*' 2>/dev/null | head -1)
+          # bazel-bin 是指向 output_base 的符号链接，find 默认不跟随，必须加 -L
+          CFG="$K/bazel-bin/msm-kernel/sun_perf_config/out_dir/.config"
+          if [ ! -f "$CFG" ]; then
+            CFG=$(find -L "$K/bazel-bin" -name '.config' 2>/dev/null | head -1)
+          fi
           echo "配置文件: $CFG"
-          [ -n "$CFG" ] || { echo "::error::没找到生成的 .config"; exit 1; }
+          [ -n "$CFG" ] && [ -f "$CFG" ] || { echo "::error::没找到生成的 .config"; find -L "$K/bazel-bin" -maxdepth 5 -type d 2>/dev/null | head -20; exit 1; }
           cp "$CFG" /mnt/work/config-check.txt
           echo "=== 关键配置校验 ==="
           grep -E '^CONFIG_KSU' "$CFG" || { echo "::error::CONFIG_KSU 未生效"; exit 1; }
