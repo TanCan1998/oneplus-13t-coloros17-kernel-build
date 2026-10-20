@@ -1,0 +1,139 @@
+name: build-ksu-kernel
+
+# 在免费 runner 上完整构建 OnePlus 13T 内核（官方 35 依赖 + SukiSU 内置）
+#
+# 关键取舍：
+#  - 跳过 vendor 模块编译（RECOMPILE_EXT_MODULE=0），只出 kernel + boot.img。
+#    本地参照：全量 3h12m，其中 359 个 vendor ko 占约 2 小时。
+#  - 编译前先单独生成 .config 验证 CONFIG_KSU=y，避免白跑 3 小时。
+#  - runner 在海外，35 个依赖直接从 GitHub / CodeLinaro 原站下载，不用任何加速前缀。
+
+on:
+  workflow_dispatch:
+    inputs:
+      ksu_ref:
+        description: 'SukiSU 分支或 tag'
+        required: false
+        default: 'main'
+      skip_build:
+        description: '只做下载装配与配置验证（true/false）'
+        required: false
+        default: 'false'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      TREE_ROOT: /mnt/work/official-13t
+      ARCH_DIR: /mnt/work/archives
+      SOURCE_DATE_EPOCH: '1789450538'
+    steps:
+      - name: 检出
+        uses: actions/checkout@v4
+
+      - name: 准备磁盘
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          sudo mkdir -p /mnt/work
+          sudo chown "$(id -u):$(id -g)" /mnt/work
+          df -h /mnt
+          echo "cpu=$(nproc) mem=$(free -g | awk '/^Mem/{print $2}')G"
+
+      - name: 安装宿主工具
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            git python3 python3-pip bison flex libelf-dev libssl-dev bc cpio rsync unzip zip \
+            dwarves lz4 device-tree-compiler
+          python3 --version
+
+      - name: 下载并装配官方依赖
+        run: |
+          python3 ci-assemble.py
+          du -sh "$TREE_ROOT" || true
+
+      - name: 安装 SukiSU
+        run: |
+          set -e
+          K="$TREE_ROOT/kernel_platform"
+          cd "$K"
+          git clone --depth=1 --branch '${{ inputs.ksu_ref }}' \
+            https://github.com/ShirkNeko/SukiSU-Ultra KernelSU
+          cd KernelSU && git log -1 --format='%H %ci %s' && cd "$K"
+          rm -rf "$K/common/drivers/kernelsu"
+          cp -a "$K/KernelSU/kernel" "$K/common/drivers/kernelsu"
+          echo "kernelsu 文件数: $(find "$K/common/drivers/kernelsu" -type f | wc -l)"
+          grep -q kernelsu "$K/common/drivers/Makefile" || printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> "$K/common/drivers/Makefile"
+          grep -q 'drivers/kernelsu/Kconfig' "$K/common/drivers/Kconfig" || sed -i '/^endmenu/i source "drivers/kernelsu/Kconfig"' "$K/common/drivers/Kconfig"
+          tail -2 "$K/common/drivers/Makefile"
+          grep -n kernelsu "$K/common/drivers/Kconfig"
+
+      - name: 注入 KSU 配置
+        run: |
+          set -e
+          K="$TREE_ROOT/kernel_platform"
+          for f in "$K/msm-kernel/arch/arm64/configs/gki_defconfig" "$K/common/arch/arm64/configs/gki_defconfig"; do
+            [ -f "$f" ] || continue
+            grep -q '^CONFIG_KSU=y' "$f" || printf '\nCONFIG_KSU=y\n' >> "$f"
+            echo "已注入: $f"
+          done
+
+      - name: 配置门禁（必须看到 CONFIG_KSU=y）
+        run: |
+          set -e
+          K="$TREE_ROOT/kernel_platform"
+          cd "$K"
+          export PATH="$K/prebuilts/build-tools/path/linux-x86:$PATH"
+          ./tools/bazel build //msm-kernel:sun_perf_config 2>&1 | tail -25
+          CFG=$(find bazel-bin -name '.config' -path '*sun_perf*' 2>/dev/null | head -1)
+          echo "配置文件: $CFG"
+          if [ -z "$CFG" ]; then
+            echo "::error::没找到生成的 .config"
+            exit 1
+          fi
+          echo "--- KSU 相关配置 ---"
+          grep -E 'CONFIG_KSU' "$CFG" || { echo "::error::CONFIG_KSU 未生效"; exit 1; }
+          cp "$CFG" /mnt/work/config-check.txt
+
+      - name: 编译内核（跳过 vendor 模块）
+        if: ${{ inputs.skip_build == 'false' }}
+        run: |
+          set -e
+          T="$TREE_ROOT"
+          cd "$T"
+          export PATH="$T/kernel_platform/prebuilts/build-tools/path/linux-x86:$PATH"
+          export RECOMPILE_EXT_MODULE=0
+          mkdir -p out/target/product/sun
+          bash kernel_platform/oplus/build/oplus_build_kernel.sh sun perf 2>&1 | tee /mnt/work/build.log | tail -60
+          echo "--- 产物 ---"
+          ls -l kernel_platform/out/msm-kernel-sun-perf/dist/boot.img \
+                kernel_platform/out/msm-kernel-sun-perf/dist/Image 2>/dev/null || {
+            echo "::error::没有产出 boot.img"; exit 1; }
+
+      - name: 校验产物
+        if: ${{ inputs.skip_build == 'false' }}
+        run: |
+          D="$TREE_ROOT/kernel_platform/out/msm-kernel-sun-perf/dist"
+          cd "$D"
+          sha256sum boot.img Image > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          echo "--- 内核版本串 ---"
+          strings Image | grep -m2 'Linux version 6.6'
+          echo "--- KSU 符号 ---"
+          grep -c ksu System.map || echo "System.map 中 ksu 符号数: 0"
+
+      - name: 上传产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-out
+          path: |
+            /mnt/work/official-13t/kernel_platform/out/msm-kernel-sun-perf/dist/boot.img
+            /mnt/work/official-13t/kernel_platform/out/msm-kernel-sun-perf/dist/Image
+            /mnt/work/official-13t/kernel_platform/out/msm-kernel-sun-perf/dist/System.map
+            /mnt/work/official-13t/kernel_platform/out/msm-kernel-sun-perf/dist/SHA256SUMS.txt
+            /mnt/work/config-check.txt
+            /mnt/work/build.log
+          if-no-files-found: warn
+          retention-days: 7
