@@ -237,28 +237,34 @@
   "name": "kernel_platform/prebuilts/clang-tools",
   "path": "kernel_platform/prebuilts/clang-tools",
   "sha": "70bc10de031e2d0ff7e76adb9746bf339bb135c0",
-  "source": "codelinaro",
-  "url": "https://git.codelinaro.org/clo/la/kernelplatform/prebuilts/clang-tools/-/archive/70bc10de031e2d0ff7e76adb9746bf339bb135c0/70bc10de031e2d0ff7e76adb9746bf339bb135c0.tar.gz",
+  "source": "release-mirror",
+  "url": "https://github.com/TanCan1998/oneplus-13t-kernel-build/releases/download/clo-deps-16.0.10.500/kernel_platform_prebuilts_clang-tools-70bc10de031e.tar.gz",
   "bytes": 55090576,
-  "sha256": "b9fdecf9d8c113f0b07eb153fdd037bcd96aeb8a10cae65149fbb41df5d6c6f5"
+  "sha256": "b9fdecf9d8c113f0b07eb153fdd037bcd96aeb8a10cae65149fbb41df5d6c6f5",
+  "fetched_bytes": 55090576,
+  "fetched_sha256": "b9fdecf9d8c113f0b07eb153fdd037bcd96aeb8a10cae65149fbb41df5d6c6f5"
  },
  {
   "name": "kernel_platform/prebuilts/jdk/jdk11",
   "path": "kernel_platform/prebuilts/jdk/jdk11",
   "sha": "f2f372463c74a896e3d8a0abb33e4667837458c2",
-  "source": "codelinaro",
-  "url": "https://git.codelinaro.org/clo/la/kernelplatform/prebuilts/jdk/jdk11/-/archive/f2f372463c74a896e3d8a0abb33e4667837458c2/f2f372463c74a896e3d8a0abb33e4667837458c2.tar.gz",
+  "source": "release-mirror",
+  "url": "https://github.com/TanCan1998/oneplus-13t-kernel-build/releases/download/clo-deps-16.0.10.500/kernel_platform_prebuilts_jdk_jdk11-f2f372463c74.tar.gz",
   "bytes": 189552139,
-  "sha256": "fca643dcd7c34f96d3c2b020ee8d434bd0e23c5312f92f8b345342ea60b52de5"
+  "sha256": "fca643dcd7c34f96d3c2b020ee8d434bd0e23c5312f92f8b345342ea60b52de5",
+  "fetched_bytes": 189552139,
+  "fetched_sha256": "fca643dcd7c34f96d3c2b020ee8d434bd0e23c5312f92f8b345342ea60b52de5"
  },
  {
   "name": "kernel_platform/prebuilts/rust",
   "path": "kernel_platform/prebuilts/rust",
   "sha": "aff65346a9f85db2c8fd1d0c13b6dcd0bee76390",
-  "source": "codelinaro",
-  "url": "https://git.codelinaro.org/clo/la/kernelplatform/prebuilts/rust/-/archive/aff65346a9f85db2c8fd1d0c13b6dcd0bee76390/aff65346a9f85db2c8fd1d0c13b6dcd0bee76390.tar.gz",
+  "source": "release-mirror",
+  "url": "https://github.com/TanCan1998/oneplus-13t-kernel-build/releases/download/clo-deps-16.0.10.500/kernel_platform_prebuilts_rust-aff65346a9f8.tar.gz",
   "bytes": 548170889,
-  "sha256": "a01537ef559c4582f4dfdb7b91fb955aac5eb2b15f813ecb21d21e0f6b7148e4"
+  "sha256": "a01537ef559c4582f4dfdb7b91fb955aac5eb2b15f813ecb21d21e0f6b7148e4",
+  "fetched_bytes": 548170889,
+  "fetched_sha256": "a01537ef559c4582f4dfdb7b91fb955aac5eb2b15f813ecb21d21e0f6b7148e4"
  },
  {
   "name": "kernel_platform/system/tools/mkbootimg",
@@ -273,28 +279,34 @@
   "name": "kernel_platform/toolchain/prebuilts/ndk/r26",
   "path": "kernel_platform/prebuilts/ndk-r26",
   "sha": "39c0d89e553619d398797309398697764cf3547b",
-  "source": "codelinaro",
-  "url": "https://git.codelinaro.org/clo/la/kernelplatform/toolchain/prebuilts/ndk/r26/-/archive/39c0d89e553619d398797309398697764cf3547b/39c0d89e553619d398797309398697764cf3547b.tar.gz",
+  "source": "release-mirror",
+  "url": "https://github.com/TanCan1998/oneplus-13t-kernel-build/releases/download/clo-deps-16.0.10.500/kernel_platform_toolchain_prebuilts_ndk_r26-39c0d89e5536.tar.gz",
   "bytes": 22549209,
-  "sha256": "337c32af2f03c27d4e9b95bebca4a0c9be5de34b96ff54e2543e06245bb47df1"
+  "sha256": "337c32af2f03c27d4e9b95bebca4a0c9be5de34b96ff54e2543e06245bb47df1",
+  "fetched_bytes": 22549209,
+  "fetched_sha256": "337c32af2f03c27d4e9b95bebca4a0c9be5de34b96ff54e2543e06245bb47df1"
  },
  {
   "name": "kernel_platform/tools/tradefederation/prebuilts",
   "path": "kernel_platform/prebuilts/tradefed",
   "sha": "0d6bd67313f94bd03fc54c350b9de54d94442ee7",
-  "source": "codelinaro",
-  "url": "https://git.codelinaro.org/clo/la/kernelplatform/tools/tradefederation/prebuilts/-/archive/0d6bd67313f94bd03fc54c350b9de54d94442ee7/0d6bd67313f94bd03fc54c350b9de54d94442ee7.tar.gz",
+  "source": "release-mirror",
+  "url": "https://github.com/TanCan1998/oneplus-13t-kernel-build/releases/download/clo-deps-16.0.10.500/kernel_platform_tools_tradefederation_prebuilts-0d6bd67313f9.tar.gz",
   "bytes": 99594095,
-  "sha256": "01683363ed358eb489786836e4183abbaffcda65b5e2388c4d55b89a7fc2b34e"
+  "sha256": "01683363ed358eb489786836e4183abbaffcda65b5e2388c4d55b89a7fc2b34e",
+  "fetched_bytes": 99594095,
+  "fetched_sha256": "01683363ed358eb489786836e4183abbaffcda65b5e2388c4d55b89a7fc2b34e"
  },
  {
   "name": "kernelplatform/prebuilts-master/clang/host/linux-x86",
   "path": "kernel_platform/prebuilts/clang/host/linux-x86",
   "sha": "b099698c583b8361ca771f3cc8d6af6f729f39b3",
-  "source": "codelinaro",
-  "url": "https://git.codelinaro.org/clo/la/kernelplatform/prebuilts-master/clang/host/linux-x86/-/archive/b099698c583b8361ca771f3cc8d6af6f729f39b3/b099698c583b8361ca771f3cc8d6af6f729f39b3.tar.gz",
+  "source": "release-mirror",
+  "url": "https://github.com/TanCan1998/oneplus-13t-kernel-build/releases/download/clo-deps-16.0.10.500/clang.tar.gz",
   "bytes": 998133349,
-  "sha256": "225c7aede6c3a7c5ef8a5627c5c45867a76a6666e27683cbc510a0c979a40ca9"
+  "sha256": "225c7aede6c3a7c5ef8a5627c5c45867a76a6666e27683cbc510a0c979a40ca9",
+  "fetched_bytes": 998133349,
+  "fetched_sha256": "225c7aede6c3a7c5ef8a5627c5c45867a76a6666e27683cbc510a0c979a40ca9"
  },
  {
   "name": "kernelplatform/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8",
@@ -309,9 +321,11 @@
   "name": "kernel_platform/prebuilts/build-tools",
   "path": "kernel_platform/prebuilts/build-tools",
   "sha": "d399f06c8cee351df2b93bac1e767f673d776c16",
-  "source": "codelinaro",
-  "url": "https://git.codelinaro.org/clo/la/kernelplatform/prebuilts/build-tools/-/archive/d399f06c8cee351df2b93bac1e767f673d776c16/d399f06c8cee351df2b93bac1e767f673d776c16.tar.gz",
+  "source": "release-mirror",
+  "url": "https://github.com/TanCan1998/oneplus-13t-kernel-build/releases/download/clo-deps-16.0.10.500/kernel_platform_prebuilts_build-tools-d399f06c8cee.tar.gz",
   "bytes": 426406514,
-  "sha256": "30241ec636f04e469e9245afce1f9c7a72e69a1b4abc52dbbfb67f2297dca720"
+  "sha256": "30241ec636f04e469e9245afce1f9c7a72e69a1b4abc52dbbfb67f2297dca720",
+  "fetched_bytes": 426406514,
+  "fetched_sha256": "30241ec636f04e469e9245afce1f9c7a72e69a1b4abc52dbbfb67f2297dca720"
  }
 ]
