@@ -72,7 +72,7 @@ jobs:
           python3 ci-assemble.py
           du -sh "$TREE_ROOT" || true
 
-      - name: 安装 SukiSU
+      - name: 安装 SukiSU（必须装到 msm-kernel，那是实际编译树）
         run: |
           set -e
           K="$TREE_ROOT/kernel_platform"
@@ -80,11 +80,20 @@ jobs:
           git clone --depth=1 --branch '${{ inputs.ksu_ref }}' \
             https://github.com/ShirkNeko/SukiSU-Ultra KernelSU
           cd KernelSU && git log -1 --format='%H %ci %s' && cd "$K"
-          rm -rf "$K/common/drivers/kernelsu"
-          cp -a "$K/KernelSU/kernel" "$K/common/drivers/kernelsu"
-          echo "kernelsu 文件数: $(find "$K/common/drivers/kernelsu" -type f | wc -l)"
-          grep -q kernelsu "$K/common/drivers/Makefile" || printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> "$K/common/drivers/Makefile"
-          grep -q 'drivers/kernelsu/Kconfig' "$K/common/drivers/Kconfig" || sed -i '/^endmenu/i source "drivers/kernelsu/Kconfig"' "$K/common/drivers/Kconfig"
+          # 关键：msm-kernel 是完整内核树（1.5G，自带 drivers/Kconfig 与 scripts/kconfig），
+          # sun_perf 编译走的是它，不是 common。装错位置会导致 Kconfig 不认识 CONFIG_KSU，
+          # merge_config.sh 报 "Defconfig fragment did not apply as expected / -KSU y"。
+          for T in msm-kernel; do
+            rm -rf "$K/$T/drivers/kernelsu"
+            cp -a "$K/KernelSU/kernel" "$K/$T/drivers/kernelsu"
+            echo "$T kernelsu 文件数: $(find "$K/$T/drivers/kernelsu" -type f | wc -l)"
+            grep -q kernelsu "$K/$T/drivers/Makefile" || printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> "$K/$T/drivers/Makefile"
+            grep -q 'drivers/kernelsu/Kconfig' "$K/$T/drivers/Kconfig" || sed -i '/^endmenu/i source "drivers/kernelsu/Kconfig"' "$K/$T/drivers/Kconfig"
+            echo "--- $T/drivers/Makefile 尾部 ---"; tail -2 "$K/$T/drivers/Makefile"
+            echo "--- $T/drivers/Kconfig 尾部 ---"; tail -3 "$K/$T/drivers/Kconfig"
+          done
+          echo "--- SukiSU 的 Kconfig 是否定义 config KSU ---"
+          grep -n -E '^(config|menuconfig) KSU' "$K/msm-kernel/drivers/kernelsu/Kconfig" | head -3
 
       - name: 应用 SUSFS 补丁（可选）
         if: ${{ inputs.enable_susfs == 'true' }}
@@ -129,7 +138,8 @@ jobs:
           CONFIG_KSU_SUSFS_SUS_MAP=y
           EOF
           fi
-          for f in "$K/msm-kernel/arch/arm64/configs/gki_defconfig" "$K/common/arch/arm64/configs/gki_defconfig"; do
+          # 只注入 msm-kernel 的 defconfig（实际编译树的 DEFCONFIG=gki_defconfig）
+          for f in "$K/msm-kernel/arch/arm64/configs/gki_defconfig"; do
             [ -f "$f" ] || continue
             while IFS= read -r line; do
               [ -z "$line" ] && continue
