@@ -86,6 +86,14 @@ jobs:
           for T in msm-kernel; do
             rm -rf "$K/$T/drivers/kernelsu"
             cp -a "$K/KernelSU/kernel" "$K/$T/drivers/kernelsu"
+            # 关键修复：SukiSU 的 kernel/include/uapi 是指向 ../../uapi 的符号链接，
+            # cp -a 复制后该链接指向 msm-kernel/drivers/uapi（不存在），
+            # 导致 policy/allowlist.c 的 #include "uapi/app_profile.h" 失败。
+            # 改为实体目录复制（全仓无文件用 ../../uapi 形式引用，安全）。
+            rm -f "$K/$T/drivers/kernelsu/include/uapi"
+            cp -a "$K/KernelSU/uapi" "$K/$T/drivers/kernelsu/include/uapi"
+            echo "$T uapi 头文件: $(ls "$K/$T/drivers/kernelsu/include/uapi" | tr '\n' ' ')"
+            test -f "$K/$T/drivers/kernelsu/include/uapi/app_profile.h" || { echo "::error::uapi/app_profile.h 缺失"; exit 1; }
             echo "$T kernelsu 文件数: $(find "$K/$T/drivers/kernelsu" -type f | wc -l)"
             grep -q kernelsu "$K/$T/drivers/Makefile" || printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> "$K/$T/drivers/Makefile"
             grep -q 'drivers/kernelsu/Kconfig' "$K/$T/drivers/Kconfig" || sed -i '/^endmenu/i source "drivers/kernelsu/Kconfig"' "$K/$T/drivers/Kconfig"
