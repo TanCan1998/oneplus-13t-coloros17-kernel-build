@@ -1,0 +1,317 @@
+[
+ {
+  "name": "android_kernel_common_oneplus_sm8750",
+  "path": "kernel_platform/common",
+  "sha": "4d611c32bedc11cf3ae46aa5e815dfe35707b93f",
+  "source": "github",
+  "url": "https://github.com/OnePlusOSS/android_kernel_common_oneplus_sm8750/archive/4d611c32bedc11cf3ae46aa5e815dfe35707b93f.tar.gz",
+  "bytes": 234611023,
+  "sha256": "877572c200d5fe54e5be5b0ec13e2cfee6a0e7c8b0e5e515d6dadb5b1a8703cd"
+ },
+ {
+  "name": "android_kernel_oneplus_sm8750",
+  "path": "kernel_platform/msm-kernel",
+  "sha": "745702d5ed2c0435f2b1d3bb78bc4f48422d4191",
+  "source": "github",
+  "url": "https://github.com/OnePlusOSS/android_kernel_oneplus_sm8750/archive/745702d5ed2c0435f2b1d3bb78bc4f48422d4191.tar.gz",
+  "bytes": 235086201,
+  "sha256": "8fcad23c98c494ad92ed18f0d19f123ea255ac816ab514536b38bee025d04b6b"
+ },
+ {
+  "name": "android_kernel_modules_and_devicetree_oneplus_sm8750",
+  "path": "./",
+  "sha": "6a196f79f77acd55cf302e1696c038e4cad99254",
+  "source": "github",
+  "url": "https://github.com/OnePlusOSS/android_kernel_modules_and_devicetree_oneplus_sm8750/archive/6a196f79f77acd55cf302e1696c038e4cad99254.tar.gz",
+  "bytes": 152246448,
+  "sha256": "0b32dc6920274e8918e0910c495c2d7b0c0757bd994fec8cc5a8b7d3774dc4b6"
+ },
+ {
+  "name": "kernel/common-modules/trusty",
+  "path": "kernel_platform/common-modules/trusty",
+  "sha": "b76f8570a1a3480a158f6bc69590dbf326a444d0",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_common-modules_trusty/archive/b76f8570a1a3480a158f6bc69590dbf326a444d0.tar.gz",
+  "bytes": 63103,
+  "sha256": "be2c7ba6395cdc912b664a48268a5e0d038a0b293b773328e47df755943ff3d9"
+ },
+ {
+  "name": "kernel/prebuilts/build-tools",
+  "path": "kernel_platform/prebuilts/kernel-build-tools",
+  "sha": "434f141b6d22a773a163fa9c707b19b4d254d989",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_prebuilts_build-tools/archive/434f141b6d22a773a163fa9c707b19b4d254d989.tar.gz",
+  "bytes": 154652106,
+  "sha256": "23710e37a89cfb8d616bc740cc7b473445b207b8ba0dd0569cc7c9db022edc31"
+ },
+ {
+  "name": "kernel_platform/build/bazel_common_rules",
+  "path": "kernel_platform/build/bazel_common_rules",
+  "sha": "7104d80549523ce9d9c5b95ec7cab8aba88afdb3",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_build_bazel_common_rules/archive/7104d80549523ce9d9c5b95ec7cab8aba88afdb3.tar.gz",
+  "bytes": 11885,
+  "sha256": "dfd4c30328e8b5b8c35a291ddb121b9255493b016e800f48591c52f38780246d"
+ },
+ {
+  "name": "kernel_platform/external/bazel-skylib",
+  "path": "kernel_platform/external/bazel-skylib",
+  "sha": "1699b2281164661387bcab62e08b1248f7908c49",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_bazel-skylib/archive/1699b2281164661387bcab62e08b1248f7908c49.tar.gz",
+  "bytes": 112411,
+  "sha256": "f12db032d8f569994fa9e76b1f066f5ec33674b5a28e13d20f05f11b720afcc1"
+ },
+ {
+  "name": "kernel_platform/external/bazelbuild-apple_support",
+  "path": "kernel_platform/external/bazelbuild-apple_support",
+  "sha": "f6003e1e3763f8aad9fb9acae79cfa5fff9ae988",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_bazelbuild-apple_support/archive/f6003e1e3763f8aad9fb9acae79cfa5fff9ae988.tar.gz",
+  "bytes": 74462,
+  "sha256": "2d6f97fab5324ba7920e1f095b981f8c0d333eb383ecb00d9ed7fbfff94408bb"
+ },
+ {
+  "name": "kernel_platform/external/bazelbuild-bazel-central-registry",
+  "path": "kernel_platform/external/bazelbuild-bazel-central-registry",
+  "sha": "5fa460f7563e307ed8396540aaf2e257f353e908",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_bazelbuild-bazel-central-registry/archive/5fa460f7563e307ed8396540aaf2e257f353e908.tar.gz",
+  "bytes": 856086,
+  "sha256": "9f11db352cebeb0357ff335571314115cc71e870145bd838f8b81420ff68c798"
+ },
+ {
+  "name": "kernel_platform/external/bazelbuild-platforms",
+  "path": "kernel_platform/external/bazelbuild-platforms",
+  "sha": "f0d9433341479772b8b645da1208377c2862627c",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_bazelbuild-platforms/archive/f0d9433341479772b8b645da1208377c2862627c.tar.gz",
+  "bytes": 13201,
+  "sha256": "8871fdf73e7c35ad2485a0ff45001f3742df5249d0ba7543e72ce2622ac5e25e"
+ },
+ {
+  "name": "kernel_platform/external/bazelbuild-rules_cc",
+  "path": "kernel_platform/external/bazelbuild-rules_cc",
+  "sha": "dc5e9e76198df0f60f7de1a8c2d947a2a972fa69",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_bazelbuild-rules_cc/archive/dc5e9e76198df0f60f7de1a8c2d947a2a972fa69.tar.gz",
+  "bytes": 160303,
+  "sha256": "3372454d0336c201d8875c376b6c2b194048eb9a5859eb4eae0e03ec087f5293"
+ },
+ {
+  "name": "kernel_platform/external/bazelbuild-rules_java",
+  "path": "kernel_platform/external/bazelbuild-rules_java",
+  "sha": "c9de4ea84567c22dc3e1aa555b6d468393df5c5d",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_bazelbuild-rules_java/archive/c9de4ea84567c22dc3e1aa555b6d468393df5c5d.tar.gz",
+  "bytes": 26209,
+  "sha256": "24902688d0053f6cf8a6edcf85ed93b3379826d6ecaca7b50f488c4c6893d65a"
+ },
+ {
+  "name": "kernel_platform/external/bazelbuild-rules_license",
+  "path": "kernel_platform/external/bazelbuild-rules_license",
+  "sha": "30733c530db3ec72b5c0cb2d30f798d6aaf1b499",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_bazelbuild-rules_license/archive/30733c530db3ec72b5c0cb2d30f798d6aaf1b499.tar.gz",
+  "bytes": 56434,
+  "sha256": "c5122f77803c867cfb40b2696efb9f0988aa19d3a82beba2ae06c9a3e5c61dc9"
+ },
+ {
+  "name": "kernel_platform/external/bazelbuild-rules_pkg",
+  "path": "kernel_platform/external/bazelbuild-rules_pkg",
+  "sha": "33b79a421797cfddf268309523a262f395211a59",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_bazelbuild-rules_pkg/archive/33b79a421797cfddf268309523a262f395211a59.tar.gz",
+  "bytes": 283207,
+  "sha256": "59afce48edcf36fec0570f0abf0c4e3def76b9a4d93f6e6bd3d38e7e205d1621"
+ },
+ {
+  "name": "kernel_platform/external/bazelbuild-rules_python",
+  "path": "kernel_platform/external/bazelbuild-rules_python",
+  "sha": "3e22460c62b498cfaa6708003738a3bfaef9cd82",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_bazelbuild-rules_python/archive/3e22460c62b498cfaa6708003738a3bfaef9cd82.tar.gz",
+  "bytes": 367811,
+  "sha256": "ce81f5406e9806007ff9c11982f5a384efcd8f7402d668d053481dbfa47e546b"
+ },
+ {
+  "name": "kernel_platform/external/dtc",
+  "path": "kernel_platform/external/dtc",
+  "sha": "6aa78bad656ffc106bb909774fee5fc2d86d4949",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_dtc/archive/6aa78bad656ffc106bb909774fee5fc2d86d4949.tar.gz",
+  "bytes": 216663,
+  "sha256": "16b361b561118fe239684d0a20cad1b227948cd99e9ed4d891682bc897bf28f3"
+ },
+ {
+  "name": "kernel_platform/external/libcap",
+  "path": "kernel_platform/external/libcap",
+  "sha": "336d1164b390131c4773b503771e9b53d9bb4f03",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_libcap/archive/336d1164b390131c4773b503771e9b53d9bb4f03.tar.gz",
+  "bytes": 256886,
+  "sha256": "146ecb45f5749c34aae919b38beafb06a5962727a5b5126c462d2d45721d5498"
+ },
+ {
+  "name": "kernel_platform/external/libcap-ng",
+  "path": "kernel_platform/external/libcap-ng",
+  "sha": "2bcc92ae19481dd2b8d3ce3abdfbbee49261abe6",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_libcap-ng/archive/2bcc92ae19481dd2b8d3ce3abdfbbee49261abe6.tar.gz",
+  "bytes": 387758,
+  "sha256": "9480fd321e7af03b798d4cb8110593981f23daaec1974ac214a4e1a7fed57ccc"
+ },
+ {
+  "name": "kernel_platform/external/lz4",
+  "path": "kernel_platform/external/lz4",
+  "sha": "124599333514066524f55f5f41fbf0d46212e598",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_lz4/archive/124599333514066524f55f5f41fbf0d46212e598.tar.gz",
+  "bytes": 355749,
+  "sha256": "224823d3284504d7d8aa8f0784d979126c76f1bea3021814bdda170f03a5ac56"
+ },
+ {
+  "name": "kernel_platform/external/pigz",
+  "path": "kernel_platform/external/pigz",
+  "sha": "9bc9fa17d499ddde88b77820f6d063e16c0cdd42",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_pigz/archive/9bc9fa17d499ddde88b77820f6d063e16c0cdd42.tar.gz",
+  "bytes": 91247,
+  "sha256": "0cd734cc5993f5277b05afae422fc65c034fae8b1c0b089a8a23f77787bd6734"
+ },
+ {
+  "name": "kernel_platform/external/python/absl-py",
+  "path": "kernel_platform/external/python/absl-py",
+  "sha": "af9da234ce5045467014f4e7b53798e8feb2339b",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_python_absl-py/archive/af9da234ce5045467014f4e7b53798e8feb2339b.tar.gz",
+  "bytes": 228975,
+  "sha256": "2ab26525e6cb96a6edaebf300161276407f2bd0ea04fee95c0d9a43d124bd4e7"
+ },
+ {
+  "name": "kernel_platform/external/toybox",
+  "path": "kernel_platform/external/toybox",
+  "sha": "dd6f71c76fe1574cf358129be29afa245eff4e36",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_toybox/archive/dd6f71c76fe1574cf358129be29afa245eff4e36.tar.gz",
+  "bytes": 3840764,
+  "sha256": "8d5a4c4b50b7d839e3e592e5b764b416add9329daf85eeb8e2e21dc3c7f65832"
+ },
+ {
+  "name": "kernel_platform/external/virtio-media",
+  "path": "kernel_platform/external/virtio-media",
+  "sha": "6bf5c3d254fe5efc458ea616d18be131d9230f0e",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_virtio-media/archive/6bf5c3d254fe5efc458ea616d18be131d9230f0e.tar.gz",
+  "bytes": 117918,
+  "sha256": "a872b2920eae73c37808ea86112b2e4c59aed01fb7d2353d8000de9cf630b8e8"
+ },
+ {
+  "name": "kernel_platform/external/zlib",
+  "path": "kernel_platform/external/zlib",
+  "sha": "4f57254519623a55dcd5bedc454337f6352f2193",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_zlib/archive/4f57254519623a55dcd5bedc454337f6352f2193.tar.gz",
+  "bytes": 597829,
+  "sha256": "ff0ba1a97fe292eb9aa1dab9e9ad7e2a737f62c6b42eedf5054fbbf0c63f06aa"
+ },
+ {
+  "name": "kernel_platform/external/zopfli",
+  "path": "kernel_platform/external/zopfli",
+  "sha": "1e312f1cc3edc4cf7c489aa95a01f2878eb01fd7",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_external_zopfli/archive/1e312f1cc3edc4cf7c489aa95a01f2878eb01fd7.tar.gz",
+  "bytes": 198518,
+  "sha256": "de8d529f1f7799afd8760ccd65c1f3ca74ab834929e018f01139c5613ac03e46"
+ },
+ {
+  "name": "kernel_platform/prebuilts/asuite",
+  "path": "kernel_platform/prebuilts/asuite",
+  "sha": "e700ae0a5f3b95470e37f4a0543b4d044e5edfb6",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_prebuilts_asuite/archive/e700ae0a5f3b95470e37f4a0543b4d044e5edfb6.tar.gz",
+  "bytes": 42777253,
+  "sha256": "440fc08aef8ec01c1f99251c4e891854cf2c7fb5fa7bc114ec879cb8101debf3"
+ },
+ {
+  "name": "kernel_platform/prebuilts/clang-tools",
+  "path": "kernel_platform/prebuilts/clang-tools",
+  "sha": "70bc10de031e2d0ff7e76adb9746bf339bb135c0",
+  "source": "codelinaro",
+  "url": "https://git.codelinaro.org/clo/la/kernelplatform/prebuilts/clang-tools/-/archive/70bc10de031e2d0ff7e76adb9746bf339bb135c0/70bc10de031e2d0ff7e76adb9746bf339bb135c0.tar.gz",
+  "bytes": 55090576,
+  "sha256": "b9fdecf9d8c113f0b07eb153fdd037bcd96aeb8a10cae65149fbb41df5d6c6f5"
+ },
+ {
+  "name": "kernel_platform/prebuilts/jdk/jdk11",
+  "path": "kernel_platform/prebuilts/jdk/jdk11",
+  "sha": "f2f372463c74a896e3d8a0abb33e4667837458c2",
+  "source": "codelinaro",
+  "url": "https://git.codelinaro.org/clo/la/kernelplatform/prebuilts/jdk/jdk11/-/archive/f2f372463c74a896e3d8a0abb33e4667837458c2/f2f372463c74a896e3d8a0abb33e4667837458c2.tar.gz",
+  "bytes": 189552139,
+  "sha256": "fca643dcd7c34f96d3c2b020ee8d434bd0e23c5312f92f8b345342ea60b52de5"
+ },
+ {
+  "name": "kernel_platform/prebuilts/rust",
+  "path": "kernel_platform/prebuilts/rust",
+  "sha": "aff65346a9f85db2c8fd1d0c13b6dcd0bee76390",
+  "source": "codelinaro",
+  "url": "https://git.codelinaro.org/clo/la/kernelplatform/prebuilts/rust/-/archive/aff65346a9f85db2c8fd1d0c13b6dcd0bee76390/aff65346a9f85db2c8fd1d0c13b6dcd0bee76390.tar.gz",
+  "bytes": 548170889,
+  "sha256": "a01537ef559c4582f4dfdb7b91fb955aac5eb2b15f813ecb21d21e0f6b7148e4"
+ },
+ {
+  "name": "kernel_platform/system/tools/mkbootimg",
+  "path": "kernel_platform/tools/mkbootimg",
+  "sha": "5fa28e8bc7f708d49a5cd42c8baaa4e8c03e08ef",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernel_platform_system_tools_mkbootimg/archive/5fa28e8bc7f708d49a5cd42c8baaa4e8c03e08ef.tar.gz",
+  "bytes": 50476,
+  "sha256": "9f9b585ef7050879226dc9f8297f334048e9af900b4461ba953e89e008c58437"
+ },
+ {
+  "name": "kernel_platform/toolchain/prebuilts/ndk/r26",
+  "path": "kernel_platform/prebuilts/ndk-r26",
+  "sha": "39c0d89e553619d398797309398697764cf3547b",
+  "source": "codelinaro",
+  "url": "https://git.codelinaro.org/clo/la/kernelplatform/toolchain/prebuilts/ndk/r26/-/archive/39c0d89e553619d398797309398697764cf3547b/39c0d89e553619d398797309398697764cf3547b.tar.gz",
+  "bytes": 22549209,
+  "sha256": "337c32af2f03c27d4e9b95bebca4a0c9be5de34b96ff54e2543e06245bb47df1"
+ },
+ {
+  "name": "kernel_platform/tools/tradefederation/prebuilts",
+  "path": "kernel_platform/prebuilts/tradefed",
+  "sha": "0d6bd67313f94bd03fc54c350b9de54d94442ee7",
+  "source": "codelinaro",
+  "url": "https://git.codelinaro.org/clo/la/kernelplatform/tools/tradefederation/prebuilts/-/archive/0d6bd67313f94bd03fc54c350b9de54d94442ee7/0d6bd67313f94bd03fc54c350b9de54d94442ee7.tar.gz",
+  "bytes": 99594095,
+  "sha256": "01683363ed358eb489786836e4183abbaffcda65b5e2388c4d55b89a7fc2b34e"
+ },
+ {
+  "name": "kernelplatform/prebuilts-master/clang/host/linux-x86",
+  "path": "kernel_platform/prebuilts/clang/host/linux-x86",
+  "sha": "b099698c583b8361ca771f3cc8d6af6f729f39b3",
+  "source": "codelinaro",
+  "url": "https://git.codelinaro.org/clo/la/kernelplatform/prebuilts-master/clang/host/linux-x86/-/archive/b099698c583b8361ca771f3cc8d6af6f729f39b3/b099698c583b8361ca771f3cc8d6af6f729f39b3.tar.gz",
+  "bytes": 998133349,
+  "sha256": "225c7aede6c3a7c5ef8a5627c5c45867a76a6666e27683cbc510a0c979a40ca9"
+ },
+ {
+  "name": "kernelplatform/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8",
+  "path": "kernel_platform/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8",
+  "sha": "e0de596ee4e1128b36fd2be9ec04422360bf404f",
+  "source": "github-mirror",
+  "url": "https://github.com/CodeLinaro-mirror/la_kernelplatform_prebuilts_gcc_linux-x86_host_x86_64-linux-glibc2.17-4.8/archive/e0de596ee4e1128b36fd2be9ec04422360bf404f.tar.gz",
+  "bytes": 68908369,
+  "sha256": "9e0f43717909fffbce020c264b00c8053d99005c6e083bc30107f0b403848912"
+ },
+ {
+  "name": "kernel_platform/prebuilts/build-tools",
+  "path": "kernel_platform/prebuilts/build-tools",
+  "sha": "d399f06c8cee351df2b93bac1e767f673d776c16",
+  "source": "codelinaro",
+  "url": "https://git.codelinaro.org/clo/la/kernelplatform/prebuilts/build-tools/-/archive/d399f06c8cee351df2b93bac1e767f673d776c16/d399f06c8cee351df2b93bac1e767f673d776c16.tar.gz",
+  "bytes": 426406514,
+  "sha256": "30241ec636f04e469e9245afce1f9c7a72e69a1b4abc52dbbfb67f2297dca720"
+ }
+]
