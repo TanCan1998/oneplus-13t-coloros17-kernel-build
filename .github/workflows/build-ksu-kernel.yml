@@ -83,7 +83,15 @@ jobs:
           # 关键：msm-kernel 是完整内核树（1.5G，自带 drivers/Kconfig 与 scripts/kconfig），
           # sun_perf 编译走的是它，不是 common。装错位置会导致 Kconfig 不认识 CONFIG_KSU，
           # merge_config.sh 报 "Defconfig fragment did not apply as expected / -KSU y"。
-          for T in msm-kernel; do
+          # 必须与设备上已安装的管理器包名一致（默认值即是，显式固定防被覆盖）。
+          # 不一致时内核在 packages.list 找不到管理器，只能走签名回退；回退后也不会
+          # Crowning，MANAGER 标志位不置，管理器界面会一直显示"未安装"。
+          export KSU_PACKAGE_NAME=com.sukisu.ultra
+          # 两棵树都装：sun_perf 的 Image 实际由 common 树编译，msm-kernel 只提供配置与模块。
+          # 实测证据（run 39386711330 产物）：Image 中 kernelsu / hook_manager /
+          # com.sukisu.ultra 字符串数量均为 0，System.map 亦无任何 KSU 符号，
+          # 说明只装 msm-kernel 时 config 能过、KSU 代码却没进内核本体。
+          for T in common msm-kernel; do
             rm -rf "$K/$T/drivers/kernelsu"
             cp -a "$K/KernelSU/kernel" "$K/$T/drivers/kernelsu"
             # 关键修复：SukiSU 的 kernel/include/uapi 是指向 ../../uapi 的符号链接，
@@ -146,8 +154,13 @@ jobs:
           CONFIG_KSU_SUSFS_SUS_MAP=y
           EOF
           fi
-          # 只注入 msm-kernel 的 defconfig（实际编译树的 DEFCONFIG=gki_defconfig）
-          for f in "$K/msm-kernel/arch/arm64/configs/gki_defconfig"; do
+          # 必须同时注入 common 的 gki_defconfig：
+          # CONFIG_MODULE_SIG_PROTECT=y 原本写在 common/arch/arm64/configs/gki_defconfig。
+          # 只改 msm-kernel 那份不影响内核本体，编出的 Image 仍带 verify_exported_symbols()
+          # 的导出保护检查，GKI 模块（rfkill 等）会因 "exports protected symbol" 被拒，
+          # 进而 cfg80211/mac80211/qca_cld3 连锁失败，最终没有 wlan0。
+          for f in "$K/msm-kernel/arch/arm64/configs/gki_defconfig" \
+                   "$K/common/arch/arm64/configs/gki_defconfig"; do
             [ -f "$f" ] || continue
             while IFS= read -r line; do
               [ -z "$line" ] && continue
@@ -182,6 +195,15 @@ jobs:
           fi
           echo "OK: MODULE_SIG_PROTECT 已关闭"
           grep -E '^CONFIG_MODULE_SIG=|^CONFIG_MODULE_SIG_FORCE|^CONFIG_RFKILL=' "$CFG" || true
+          # 源头校验：任一 gki_defconfig 若仍写着 =y，内核本体必然带检查
+          for g in "$K/common/arch/arm64/configs/gki_defconfig" \
+                   "$K/msm-kernel/arch/arm64/configs/gki_defconfig"; do
+            [ -f "$g" ] || continue
+            if grep -q '^CONFIG_MODULE_SIG_PROTECT=y' "$g"; then
+              echo "::error::$g 仍含 CONFIG_MODULE_SIG_PROTECT=y"; exit 1
+            fi
+            echo "源头 OK: $g"
+          done
 
       - name: 编译内核（跳过 vendor 模块）
         if: ${{ inputs.skip_build == 'false' }}
@@ -204,8 +226,29 @@ jobs:
           sha256sum boot.img Image > SHA256SUMS.txt
           cat SHA256SUMS.txt
           strings Image | grep -m2 'Linux version 6.6'
-          echo "--- KSU 符号数 ---"
-          grep -c -i ksu System.map || true
+          echo "--- KSU 符号数（必须精确匹配；grep -i ksu 会误命中 chksum 系列）---"
+          grep -cE ' (ksu_|kernelsu)' System.map || true
+          if ! grep -qE ' (ksu_|kernelsu)' System.map; then
+            echo "::error::System.map 中没有任何 KernelSU 符号 —— SukiSU 未编入内核本体"
+            exit 1
+          fi
+          if ! strings Image | grep -aq 'hook_manager'; then
+            echo "::error::Image 中无 KSU 运行时字符串 —— 内核未真正集成 SukiSU"
+            exit 1
+          fi
+          echo "OK: SukiSU 已编入内核本体"
+          # 硬判据：MODULE_SIG_PROTECT 关闭后 gki_module.o 不再编译，该字符串必须消失。
+          # 若仍存在，说明配置没进内核本体，WiFi 一定挂，不必浪费一次刷机。
+          if strings Image | grep -q 'exports protected symbol'; then
+            echo "::error::Image 仍含 exports protected symbol —— MODULE_SIG_PROTECT 未真正关闭"
+            exit 1
+          fi
+          echo "OK: Image 已无导出保护检查"
+          if strings Image | grep -aq 'com.sukisu.ultra'; then
+            echo "OK: Image 内置管理器包名 com.sukisu.ultra"
+          else
+            echo "::warning::Image 中未见 com.sukisu.ultra，管理器可能仍显示未安装"
+          fi
           cp SHA256SUMS.txt /mnt/work/ 2>/dev/null || true
 
       - name: 上传产物
