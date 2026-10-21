@@ -259,7 +259,14 @@
         "security/selinux/avc.c": "8a93a20217bcf2e8121d6795510968e846b858ba7fd88b378575558afc36eb37",
         "drivers/Makefile": "b6326b38be373b2aea0eab44014568486cf990484fdd7f455248f4494d306dd4",
         "drivers/Kconfig": "a440677b8e8c6289e0a7fc6d02539fb5c20c667da596130f69202678e8aa1ab6",
-        "arch/arm64/configs/gki_defconfig": "9adf65d2f59d43a02a48b35ee49cd8d9e5c236ef0faba16e13d0b92bbb588eb7"
+        "arch/arm64/configs/gki_defconfig": "9adf65d2f59d43a02a48b35ee49cd8d9e5c236ef0faba16e13d0b92bbb588eb7",
+        "drivers/input/input.c": "2a58d451737223f11e4fe9dcafc539d4b4b68cc74b47605b3b80177bf0c27d36",
+        "fs/exec.c": "4e666245f01baf65c470c33869a57e0c42937726d60c9d32a744cbc961ae4146",
+        "fs/open.c": "73dde4fe073c3f96100969085c8b993fc85beb26ab3a711bcebe47c69e8f57db",
+        "fs/read_write.c": "0b53dc9827aaac8ef8b29fe6442a84457a60e9af9fa20a6ec6171d6e10cedb3c",
+        "security/selinux/hooks.c": "0d76b3231a4f698d97bb20a5264db9c6247df45b0b7f07ba1b38c5416f6c7f38",
+        "security/selinux/selinuxfs.c": "07a36d5974075d8e205b4b700ee5151766a74bd6a826b5697c54877eb9bf9ff2",
+        "security/selinux/ss/services.c": "0c029d30caff26eb7b647d5a1a8ecbc2ee243cec3ee91b727d52aaeef01c8ddb"
       }
     }
   },
@@ -350,7 +357,8 @@
       "apply_exit_code": 0,
       "rejects": [],
       "dist_target": "//msm-kernel:sun16k_perf_dist 产出 boot.img，故必须同时打补丁",
-      "previous_failure": "run 39532454585：msm-kernel vmlinux 链接时 17 个 susfs_* 符号未定义"
+      "previous_failure": "run 39532454585：msm-kernel vmlinux 链接时 17 个 susfs_* 符号未定义",
+      "preserve_files_source": "raw.githubusercontent.com 固定提交取回并比对"
     }
   }
 }
