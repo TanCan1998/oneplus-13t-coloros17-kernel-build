@@ -19,6 +19,10 @@ PATCH = HERE / LOCK["adaptation"]["patches"]["common"]["path"]
 TOUCHED = LOCK["adaptation"]["patches"]["common"]["files"]
 NEW_FILES = {"fs/susfs.c", "include/linux/susfs.h", "include/linux/susfs_def.h"}
 EXTRA = ["drivers/Makefile", "drivers/Kconfig", "arch/arm64/configs/gki_defconfig"]
+# 这些文件由 SukiSU 保留其原有 hook，必须按 tarball 真值固定，而非按 raw 端点。
+PRESERVE = ["drivers/input/input.c", "fs/exec.c", "fs/open.c", "fs/read_write.c",
+            "security/selinux/hooks.c", "security/selinux/selinuxfs.c",
+            "security/selinux/ss/services.c"]
 
 def sha256(p):
     import hashlib
@@ -33,7 +37,7 @@ def main():
     url = "https://gh-proxy.org/https://github.com/" + SPEC["repo"] + "/archive/" + SPEC["commit"] + ".tar.gz"
     subprocess.run(["curl", "--fail", "--location", "--retry", "3", "--connect-timeout", "20",
                     "--max-time", "600", "--output", str(archive), url], check=True)
-    wanted = [p for p in TOUCHED if p not in NEW_FILES] + EXTRA
+    wanted = [p for p in TOUCHED if p not in NEW_FILES] + EXTRA + PRESERVE
     tree = WORK / "msm"
     tree.mkdir()
     remaining = set(wanted)
@@ -57,6 +61,7 @@ def main():
     if remaining:
         raise RuntimeError("缺少文件：" + ", ".join(sorted(remaining)))
     common_base = LOCK["sources"]["common"]["files"]
+    record_preserve = {}
     record = {"commit": SPEC["commit"], "archive_bytes": archive.stat().st_size,
               "archive_sha256": sha256(archive), "files": {}, "identical_to_common": [],
               "differs_from_common": [], "new_file_conflicts": []}
@@ -69,6 +74,10 @@ def main():
             record["identical_to_common"].append(rel)
         else:
             record["differs_from_common"].append(rel)
+    for rel in PRESERVE:
+        record_preserve[rel] = {"sha256": record["files"][rel],
+                                "equals_common": record["files"][rel] == common_base.get(rel)}
+    record["preserve_files"] = record_preserve
     for rel in sorted(NEW_FILES):
         if (tree / rel).exists():
             record["new_file_conflicts"].append(rel)
