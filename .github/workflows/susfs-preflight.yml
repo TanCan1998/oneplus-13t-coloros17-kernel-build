@@ -1,0 +1,40 @@
+name: susfs-preflight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  patch-compatibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: 检出固定工作流
+        uses: actions/checkout@v7.0.1
+
+      - name: 准备一次性诊断目录
+        run: |
+          set -euo pipefail
+          command -v python3
+          command -v patch
+          command -v curl
+          sudo mkdir -p /mnt/work
+          sudo chown "$(id -u):$(id -g)" /mnt/work
+          df -h /mnt
+
+      - name: 固定源码并检查两侧 SUSFS 补丁
+        env:
+          SUSFS_PREFLIGHT_WORK: /mnt/work/susfs-preflight
+          SUSFS_PREFLIGHT_OUT: /mnt/work/susfs-report
+        run: python3 susfs-preflight.py
+
+      - name: 保留完整冲突和源码证据
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: susfs-preflight
+          path: /mnt/work/susfs-report/
+          if-no-files-found: error
+          retention-days: 14

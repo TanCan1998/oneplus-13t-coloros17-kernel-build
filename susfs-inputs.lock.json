@@ -1,0 +1,81 @@
+{
+  "baseline_ci_run": "39450775101",
+  "sources": {
+    "common": {
+      "repo": "OnePlusOSS/android_kernel_common_oneplus_sm8750",
+      "commit": "4d611c32bedc11cf3ae46aa5e815dfe35707b93f",
+      "files": {
+        "drivers/input/input.c": "2a58d451737223f11e4fe9dcafc539d4b4b68cc74b47605b3b80177bf0c27d36",
+        "fs/Makefile": "9ba831e35b31462ce0623a4751863d2abaf6f4b1285a89c92c89a4c5cef8c5dd",
+        "fs/exec.c": "4e666245f01baf65c470c33869a57e0c42937726d60c9d32a744cbc961ae4146",
+        "fs/namei.c": "8b0900f144bc09ea98b7784638c673df46a1d61587657d240a72e57cd086a8f2",
+        "fs/namespace.c": "512dfd837d490180cf22071f9a40151746886675d9bc9f3b91e4fe24c36c11d4",
+        "fs/notify/fdinfo.c": "a71589d0cbf32709fe1cc8f7b8cf777ab1c2d8dc65b1e946fc7fa125ebfe17da",
+        "fs/open.c": "d234ac858f21850aa3dd10297baae11c41b13a838a2fc92236d0ccd2ea28ceea",
+        "fs/proc/base.c": "83902e89fa796d11a523f1e0847ceba98c2897f92f5f1ea634a1dd1845bf71ac",
+        "fs/proc/bootconfig.c": "5b6ffb8273bfb3a317ad65034b0e10ff3d7e05038dec68accfd09a0840947309",
+        "fs/proc/fd.c": "5e959fe6d6e74bada2d47d0286761fc5360f81659ef097a94bb983587ba13056",
+        "fs/proc/task_mmu.c": "cb046d6bd3d950ec6e09aecd4dff24cd8d87536f7e9e2b2fd5506c343a92da0b",
+        "fs/proc_namespace.c": "07a819793943c13b8423e43b33c6a623e64151213320c1ac3971477a5a19e718",
+        "fs/read_write.c": "0b53dc9827aaac8ef8b29fe6442a84457a60e9af9fa20a6ec6171d6e10cedb3c",
+        "fs/readdir.c": "494ec14b74292487cc95d26cbdf9dba5b8442c9b839d033742ecf6c3cdca3f2c",
+        "fs/stat.c": "c82d3e263e9a2425b616758d681f4b791e5149008e6a7702edc353cb8dbf2541",
+        "fs/statfs.c": "7257764b8e3ab4183e3c26713c3f0492770abdc57a8773bb91eb8736bf8cd3fb",
+        "fs/super.c": "322c2d20804463d45a49147a9ef5ff7994bd1f4d1bda0b3936f9f665af3a536f",
+        "kernel/kallsyms.c": "231cbbe10420d8b1652145da3af908d63e03775c11f3ce052f85720bbeccb9dc",
+        "kernel/reboot.c": "2ac6cc43f7b33f0153b031e441de7aa126c1c89936c544226fe8706fcb01913a",
+        "kernel/sys.c": "0f5b0272bf1796260948bbcaafed582fa80d7065d2fbc51014bb9bab084ce69e",
+        "mm/memory.c": "ba458a90daf131a3727fec7ab03394881b56119b3f70869402b3968e4e628d1a",
+        "security/selinux/avc.c": "8a93a20217bcf2e8121d6795510968e846b858ba7fd88b378575558afc36eb37",
+        "security/selinux/hooks.c": "0d76b3231a4f698d97bb20a5264db9c6247df45b0b7f07ba1b38c5416f6c7f38",
+        "security/selinux/selinuxfs.c": "07a36d5974075d8e205b4b700ee5151766a74bd6a826b5697c54877eb9bf9ff2",
+        "security/selinux/ss/services.c": "0c029d30caff26eb7b647d5a1a8ecbc2ee243cec3ee91b727d52aaeef01c8ddb"
+      }
+    },
+    "ksu": {
+      "repo": "SukiSU-Ultra/SukiSU-Ultra",
+      "commit": "7ea0dd2b09bfc60e6b51a6a93fc9f49b349a9b2a",
+      "files": {
+        "kernel/Kbuild": "12094cb4db8046907c4e47ade2d32583cfe98ad50eab10f05f587eb709470434",
+        "kernel/Kconfig": "5ba6f691f8f5739cf988845103165a9f2941a4e5ac0cbe661c8cc711005a00b6",
+        "kernel/core/init.c": "f345171ee066db19eea55ed046ac47c91879a59d8c3f1e135dce4a5823e64485",
+        "kernel/feature/adb_root.c": "626e7c39acd3a35a591c238df9e9bc3a774abfa6da2c87816a2388b9c9fbdc1d",
+        "kernel/feature/adb_root.h": "a477ba8635c1d285e7fd76cfde5f2071b199bef0d10fa25193cc284eda4188af",
+        "kernel/feature/kernel_umount.c": "13ec0899a8429e2232ce1200a4db2806134b5df2c6f748d82907247e43caf6a4",
+        "kernel/feature/selinux_hide.c": "703df86bc85e5b3618d9ebf505ba99a17742c9cbef5aa1f08a30cae72cca478d",
+        "kernel/feature/sucompat.c": "6cf693a49582cc731fa5679c65e4bcbb23be09db914846893ff5fdf63f5983bf",
+        "kernel/feature/sucompat.h": "c36972feadb040880489fde985875ed449c234947421589cfc86e29478b29ef9",
+        "kernel/hook/setuid_hook.c": "021d8904483a276e879c168fda61a3cb2f30ffdee08e99c1c5da185a68b43879",
+        "kernel/hook/setuid_hook.h": "437b3333ae51e8eae0e7ef44652faf7a5cf7f744e4974409467c3879773e9f70",
+        "kernel/include/ksu.h": "1069cffedd5c982cce9a062bd8f3cc6277ef9d84883cdd2f0da6e478a0a2170e",
+        "kernel/policy/allowlist.c": "17c559e41dfd8f14787f34eb08f6d26ba38933ca68535d2a88b701426808201a",
+        "kernel/policy/app_profile.c": "320b5d4b1c88df2cd1ef6a47222e13fef09fd15fb2c6e4cb2c059074e0f08462",
+        "kernel/policy/app_profile.h": "f69a6d4fb77984a1a9ad8726b7e560e4e73bbf7b3d6dbe1f0e2ab4f5762e03af",
+        "kernel/policy/feature.h": "f2b7e5c537b18fec10268225e35d2514e4cb316699a2bb683d69eabdc819f1b7",
+        "kernel/runtime/boot_event.c": "0a5fc0ee8d5dc729228b89c03105af75fb8b721abbad334af190e6e214414a4c",
+        "kernel/runtime/ksud.h": "5d76088f766294df642fed200dfbee24eb8903afb84414919ed8d742c391ba18",
+        "kernel/runtime/ksud_integration.c": "594fd1f8b8cae83b2a907e1629475cb3a11095f4ac82dff1035ebf8a0e8111fb",
+        "kernel/selinux/rules.c": "7e371370296351055783ce24f5ea0138af3fa98e800d6dcd93a640ba9d941076",
+        "kernel/selinux/selinux.c": "1e35d05d9415d159710107ac9d08e64af368482a47cccc36673171dc64952990",
+        "kernel/selinux/selinux.h": "f64a4e1e13a603f1c51ba18ef488a853c0d1d86997fbbe34516a640c3926a2b4",
+        "kernel/sulog/event.c": "ab0e7cbd5da7808a432ede139acc45b90bb943551910c70fe76f08e7f78cf8db",
+        "kernel/sulog/event.h": "41f74a6e342b5d2e50515155034d83c4bfc2e0e95f75c8a1c9ef48abae121671",
+        "kernel/supercall/dispatch.c": "bbceac0935063bcffe9023ead7d95397097fa9609ab526854f862d46a7f91fd4",
+        "kernel/supercall/supercall.c": "de17def4832dcf94a9a4e1b322cc56e9a9caacc162dc3272d8b81a978538ab2a",
+        "kernel/supercall/supercall.h": "27ee3497a8fdbf117fe05aa56a764d84bcdea7bfc6a7dc68a3f4c8191f6ad9fa"
+      }
+    },
+    "susfs": {
+      "repo": "cctv18/susfs4oki",
+      "commit": "3f6aae536724af0df3dfa15f932034d14a5dbc5c",
+      "files": {
+        "README.md": "ed68c8321e00ae89f18f8057527a6506154a090173a5501b78c8b4caa72fc1d1",
+        "kernel_patches/50_add_susfs_in_gki-android15-6.6.patch": "920e37ed586a2ba475a1e77bbab88a64a078b33ef794bb3d68b2af14bb1be786",
+        "kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch": "1c893e469269e526486775e19a495200aae21aa38330f032e446de017c7b6c42",
+        "kernel_patches/fs/susfs.c": "5521aa600f6df698e1d5e31df72e3557a36d33c161bd65dcafe5788fb56a7fa7",
+        "kernel_patches/include/linux/susfs.h": "fafff787b8856bd37a6736c2f0bbc5a57fd1f36232be267936f892fb57bc5120",
+        "kernel_patches/include/linux/susfs_def.h": "db7f98dcf8119a4eb5c45c05205b6c1065766047d6f803b0e86f3d14b1a251f0"
+      }
+    }
+  }
+}
