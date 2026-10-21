@@ -1,0 +1,141 @@
+name: build-native-susfs-kernel
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_build:
+        description: '仅验证装配与配置，不编译内核'
+        required: true
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-susfs-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  source-gate:
+    name: 固定源码与补丁门禁
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: 检出固定工作流提交
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 准备一次性源码工作区
+        run: |
+          set -euo pipefail
+          sudo mkdir -p /mnt/work
+          sudo chown "$(id -u):$(id -g)" /mnt/work
+          python3 --version
+          patch --version | head -1
+
+      - name: 校验固定源码与原生适配
+        run: |
+          set -euo pipefail
+          python3 susfs-native-preflight.py --work /mnt/work/susfs-native-preflight --out /mnt/work/susfs-source-report
+
+      - name: 保留完整源码门禁证据
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: susfs-source-preflight
+          path: /mnt/work/susfs-source-report/
+          if-no-files-found: error
+          retention-days: 14
+
+  build:
+    name: 双配置门禁与原生 SUSFS 编译
+    needs: source-gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    env:
+      TREE_ROOT: /mnt/work/official-13t
+      ARCH_DIR: /mnt/work/archives
+      SOURCE_DATE_EPOCH: '1789450538'
+      PYTHONUTF8: '1'
+    steps:
+      - name: 检出同一固定提交
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 准备一次性云端构建磁盘
+        run: |
+          set -euo pipefail
+          # 仅释放本次托管 runner 的预装 SDK 缓存，不涉及电脑或手机文件。
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo mkdir -p /mnt/work
+          sudo chown "$(id -u):$(id -g)" /mnt/work
+          df -h /mnt
+          echo "CPU=$(nproc)"
+
+      - name: 安装既有内核构建工具
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            git python3 bison flex libelf-dev libssl-dev bc cpio rsync unzip zip \
+            dwarves lz4 device-tree-compiler patch
+
+      - name: 装配官方固定的 35 个依赖
+        run: |
+          set -euo pipefail
+          python3 ci-assemble.py 2>&1 | tee /mnt/work/assemble.log
+
+      - name: 校验真实装配树并安装原生 SUSFS
+        run: |
+          set -euo pipefail
+          python3 ci-install-susfs.py 2>&1 | tee /mnt/work/susfs-install.log
+
+      - name: common 与 sun_perf 双配置门禁
+        run: |
+          set -euo pipefail
+          cd "$TREE_ROOT/kernel_platform"
+          export PATH="$PWD/prebuilts/build-tools/path/linux-x86:$PATH"
+          ./tools/bazel build //common:kernel_aarch64_config //msm-kernel:sun_perf_config 2>&1 | tee /mnt/work/config.log
+          python3 "$GITHUB_WORKSPACE/ci-check-susfs-config.py"
+
+      - name: 云端编译内核，不重编 vendor 模块
+        if: ${{ inputs.skip_build == 'false' }}
+        run: |
+          set -euo pipefail
+          cd "$TREE_ROOT"
+          export PATH="$PWD/kernel_platform/prebuilts/build-tools/path/linux-x86:$PATH"
+          export RECOMPILE_EXT_MODULE=0
+          mkdir -p out/target/product/sun
+          bash kernel_platform/oplus/build/oplus_build_kernel.sh sun perf 2>&1 | tee /mnt/work/build.log
+
+      - name: 校验实际 boot、Image 与 KSU/SUSFS 链接证据
+        if: ${{ inputs.skip_build == 'false' }}
+        run: |
+          set -euo pipefail
+          python3 ci-verify-susfs-artifacts.py 2>&1 | tee /mnt/work/artifact-verification.log
+
+      - name: 保留构建产物和完整失败证据
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: kernel-susfs-out
+          path: |
+            /mnt/work/official-13t/kernel_platform/out/msm-kernel-sun-perf/dist/boot.img
+            /mnt/work/official-13t/kernel_platform/out/msm-kernel-sun-perf/dist/Image
+            /mnt/work/official-13t/kernel_platform/out/msm-kernel-sun-perf/dist/System.map
+            /mnt/work/official-13t/kernel_platform/out/msm-kernel-sun-perf/dist/SHA256SUMS.txt
+            /mnt/work/config-common.txt
+            /mnt/work/config-msm-kernel.txt
+            /mnt/work/assemble.log
+            /mnt/work/susfs-install.log
+            /mnt/work/config.log
+            /mnt/work/build.log
+            /mnt/work/artifact-verification.log
+            /mnt/work/susfs-install-report/
+            /mnt/work/susfs-build-verification/
+          if-no-files-found: warn
+          retention-days: 14
