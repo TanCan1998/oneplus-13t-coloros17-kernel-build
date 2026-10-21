@@ -96,8 +96,25 @@ def check(common, ksu, lock, common_key="common"):
         ("security/selinux/avc.c", "susfs_is_avc_log_spoofing_enabled"),
     ]:
         require(token in read(common, rel), "保留原生文件系统接线 " + rel)
-    for rel in ["fs/susfs.c", "include/linux/susfs.h", "include/linux/susfs_def.h"]:
+    for rel in ["include/linux/susfs.h", "include/linux/susfs_def.h"]:
         digest = hashlib.sha256((common / rel).read_bytes()).hexdigest()
         expected = lock["sources"]["susfs"]["files"]["kernel_patches/" + rel]
         require(digest == expected, "原生 SUSFS 核心与固定上游一致 " + rel)
+    # fs/susfs.c 允许唯一一处已批准的 FUSE readdir 增量：剥离后必须与上游逐字节一致。
+    raw = read(common, "fs/susfs.c")
+    m = re.search(r"\n/\* \(sb, i_ino\) 索引：.*?\n\treturn ret;\n\}", raw, re.S)
+    require(m is not None, "fs/susfs.c 含已批准的 (sb,i_ino) 索引增量块")
+    stripped = raw[:m.start()] + raw[m.end():]
+    require(stripped.count("#include <linux/hashtable.h>\n") == 1, "fs/susfs.c 仅新增 hashtable 头一次")
+    stripped = stripped.replace("#include <linux/hashtable.h>\n", "", 1)
+    require(stripped.count("\t\tsusfs_add_sus_ino(inode);\n") == 4, "四处 sus_path 登记点齐全")
+    stripped = stripped.replace("\t\tsusfs_add_sus_ino(inode);\n", "")
+    expected_susfs = lock["sources"]["susfs"]["files"]["kernel_patches/fs/susfs.c"]
+    require(hashlib.sha256(stripped.encode()).hexdigest() == expected_susfs,
+            "剥离已批准增量后，原生 SUSFS 核心仍与固定上游一致 fs/susfs.c")
+    rd = read(common, "fs/readdir.c")
+    require(rd.count("\tif (susfs_is_sus_ino(buf->sb, ino)) {") == 5,
+            "readdir 五处 getdents 回调均先查 (sb,i_ino) 索引")
+    require("extern bool susfs_is_sus_ino(struct super_block *sb, unsigned long ino);" in rd,
+            "readdir 声明 (sb,i_ino) 索引接口")
     return checks

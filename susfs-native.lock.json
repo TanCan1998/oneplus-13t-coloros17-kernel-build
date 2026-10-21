@@ -271,7 +271,7 @@
     }
   },
   "adaptation": {
-    "version": "native-v3-preserve-sukisu-hooks",
+    "version": "native-v4-fuse-readdir",
     "patches": {
       "common": {
         "path": "patches/susfs/common-native.patch",
@@ -298,7 +298,7 @@
           "mm/memory.c",
           "security/selinux/avc.c"
         ],
-        "sha256": "870df4614a89cbe380178423cb50fcb006e96e6a2531c167330a3b4102a13873",
+        "sha256": "d21c1e2b5fac242952b059f0a9200f7f59b2d48d1e7b0eb3dd029648fb10a37b",
         "targets": [
           "common",
           "msm-kernel"

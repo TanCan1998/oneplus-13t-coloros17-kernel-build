@@ -45,3 +45,10 @@ SukiSU 版本固定为已验证基线 41028，完整版本标识为 `native-susf
 MODULE_SIG_PROTECT 关闭会减少导出保护。这是已验证基线的取舍；此前关于所有原厂模块签名归属的推断不作为依据。原拒绝条件位于导出保护检查，不能误写为普通导入失败。
 
 现有手机和私有备份不在该仓库或工作流内。后续实机验证仍需单独授权并确认 USB 回滚路径。
+
+## v4：FUSE readdir 索引（2026-10-21）
+
+- 现象：ksud susfs add-sus-path /sdcard/Android/data/<pkg> 内核返回 0 并打印 flagged AS_FLAGS_SUS_PATH，但应用侧目录枚举仍可见；内核日志中该 inode 从未出现 hiding path with ino。
+- 根因：fuse_iget_backing() 在 nodeid=0 时以 backing_inode 指针作为 inode 哈希键，而 ilookup(buf->sb, ino) 按 hash(sb, ino) 定桶，无法命中该条目，故 fs/readdir.c 的过滤直接走 orig_flow。
+- 适配：fs/susfs.c 的 sus_path 段新增 (sb_dev, i_ino, uid) 哈希索引，susfs_add_sus_path()/susfs_run_sus_path_loop() 置位后登记；fs/readdir.c 五处 getdents 回调在 ilookup 之前先查该索引（仅对 TIF_PROC_UMOUNTED 且 uid>=10000 的进程生效，属主 UID 不隐藏）。
+- 门禁：susfs-native-check.py 对 fs/susfs.c 改为「剥离唯一已批准的增量块后必须与上游逐字节一致」，并断言 readdir 五处接线与声明。
