@@ -234,6 +234,33 @@
         "kernel_patches/include/linux/susfs.h": "fafff787b8856bd37a6736c2f0bbc5a57fd1f36232be267936f892fb57bc5120",
         "kernel_patches/include/linux/susfs_def.h": "db7f98dcf8119a4eb5c45c05205b6c1065766047d6f803b0e86f3d14b1a251f0"
       }
+    },
+    "msm-kernel": {
+      "repo": "OnePlusOSS/android_kernel_oneplus_sm8750",
+      "commit": "745702d5ed2c0435f2b1d3bb78bc4f48422d4191",
+      "files": {
+        "fs/Makefile": "9ba831e35b31462ce0623a4751863d2abaf6f4b1285a89c92c89a4c5cef8c5dd",
+        "fs/namei.c": "8b0900f144bc09ea98b7784638c673df46a1d61587657d240a72e57cd086a8f2",
+        "fs/namespace.c": "512dfd837d490180cf22071f9a40151746886675d9bc9f3b91e4fe24c36c11d4",
+        "fs/notify/fdinfo.c": "a71589d0cbf32709fe1cc8f7b8cf777ab1c2d8dc65b1e946fc7fa125ebfe17da",
+        "fs/proc/base.c": "83902e89fa796d11a523f1e0847ceba98c2897f92f5f1ea634a1dd1845bf71ac",
+        "fs/proc/bootconfig.c": "5b6ffb8273bfb3a317ad65034b0e10ff3d7e05038dec68accfd09a0840947309",
+        "fs/proc/fd.c": "5e959fe6d6e74bada2d47d0286761fc5360f81659ef097a94bb983587ba13056",
+        "fs/proc/task_mmu.c": "cb046d6bd3d950ec6e09aecd4dff24cd8d87536f7e9e2b2fd5506c343a92da0b",
+        "fs/proc_namespace.c": "07a819793943c13b8423e43b33c6a623e64151213320c1ac3971477a5a19e718",
+        "fs/readdir.c": "494ec14b74292487cc95d26cbdf9dba5b8442c9b839d033742ecf6c3cdca3f2c",
+        "fs/stat.c": "c82d3e263e9a2425b616758d681f4b791e5149008e6a7702edc353cb8dbf2541",
+        "fs/statfs.c": "7257764b8e3ab4183e3c26713c3f0492770abdc57a8773bb91eb8736bf8cd3fb",
+        "fs/super.c": "322c2d20804463d45a49147a9ef5ff7994bd1f4d1bda0b3936f9f665af3a536f",
+        "kernel/kallsyms.c": "231cbbe10420d8b1652145da3af908d63e03775c11f3ce052f85720bbeccb9dc",
+        "kernel/reboot.c": "2ac6cc43f7b33f0153b031e441de7aa126c1c89936c544226fe8706fcb01913a",
+        "kernel/sys.c": "0f5b0272bf1796260948bbcaafed582fa80d7065d2fbc51014bb9bab084ce69e",
+        "mm/memory.c": "ba458a90daf131a3727fec7ab03394881b56119b3f70869402b3968e4e628d1a",
+        "security/selinux/avc.c": "8a93a20217bcf2e8121d6795510968e846b858ba7fd88b378575558afc36eb37",
+        "drivers/Makefile": "b6326b38be373b2aea0eab44014568486cf990484fdd7f455248f4494d306dd4",
+        "drivers/Kconfig": "a440677b8e8c6289e0a7fc6d02539fb5c20c667da596130f69202678e8aa1ab6",
+        "arch/arm64/configs/gki_defconfig": "9adf65d2f59d43a02a48b35ee49cd8d9e5c236ef0faba16e13d0b92bbb588eb7"
+      }
     }
   },
   "adaptation": {
@@ -264,7 +291,11 @@
           "mm/memory.c",
           "security/selinux/avc.c"
         ],
-        "sha256": "870df4614a89cbe380178423cb50fcb006e96e6a2531c167330a3b4102a13873"
+        "sha256": "870df4614a89cbe380178423cb50fcb006e96e6a2531c167330a3b4102a13873",
+        "targets": [
+          "common",
+          "msm-kernel"
+        ]
       },
       "ksu": {
         "path": "patches/susfs/ksu-native.patch",
@@ -291,6 +322,35 @@
       "security/selinux/selinuxfs.c",
       "security/selinux/ss/services.c"
     ],
-    "smaps_resolution": "旧版 Case 4 hunk 不适用；保留已成功应用的新版有大括号与 last_vma_end 更新的 hunk"
+    "smaps_resolution": "旧版 Case 4 hunk 不适用；保留已成功应用的新版有大括号与 last_vma_end 更新的 hunk",
+    "msm_kernel_evidence": {
+      "probe_run": "39541952386",
+      "archive_sha256": "c361c157a90f643d534181e0a5fceedb5fdccbfc2cd4d308fb5f70a6c0df9b0b",
+      "archive_bytes": 235216119,
+      "identical_to_common": [
+        "fs/Makefile",
+        "fs/namei.c",
+        "fs/namespace.c",
+        "fs/notify/fdinfo.c",
+        "fs/proc/base.c",
+        "fs/proc/bootconfig.c",
+        "fs/proc/fd.c",
+        "fs/proc/task_mmu.c",
+        "fs/proc_namespace.c",
+        "fs/readdir.c",
+        "fs/stat.c",
+        "fs/statfs.c",
+        "fs/super.c",
+        "kernel/kallsyms.c",
+        "kernel/reboot.c",
+        "kernel/sys.c",
+        "mm/memory.c",
+        "security/selinux/avc.c"
+      ],
+      "apply_exit_code": 0,
+      "rejects": [],
+      "dist_target": "//msm-kernel:sun16k_perf_dist 产出 boot.img，故必须同时打补丁",
+      "previous_failure": "run 39532454585：msm-kernel vmlinux 链接时 17 个 susfs_* 符号未定义"
+    }
   }
 }

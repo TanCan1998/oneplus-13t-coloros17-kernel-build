@@ -22,7 +22,8 @@ PRESERVE_COMMON = [
     "security/selinux/ss/services.c",
 ]
 
-def check(common, ksu, lock):
+def check(common, ksu, lock, common_key="common"):
+    """common_tree 可以是 common 或 msm-kernel：两者均为完整内核树。"""
     common, ksu = Path(common), Path(ksu)
     checks = []
     def require(ok, message):
@@ -31,7 +32,7 @@ def check(common, ksu, lock):
         checks.append(message)
     def read(tree, rel):
         return (tree / rel).read_text(encoding="utf-8")
-    for name, tree, paths in [("ksu", ksu, PRESERVE_KSU), ("common", common, PRESERVE_COMMON)]:
+    for name, tree, paths in [("ksu", ksu, PRESERVE_KSU), (common_key, common, PRESERVE_COMMON)]:
         for rel in paths:
             expected = lock["sources"][name]["files"][rel]
             actual = hashlib.sha256((tree / rel).read_bytes()).hexdigest()

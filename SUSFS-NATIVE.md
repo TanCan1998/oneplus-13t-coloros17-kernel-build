@@ -33,7 +33,8 @@ SukiSU 版本固定为已验证基线 41028，完整版本标识为 `native-susf
 - 本地仅做补丁应用和源码检查，不编译内核。
 - 云端 `build-susfs-kernel.yml` 先检查固定源码、零 fuzz/零偏移应用和基线保留。
 - 源码门禁成功后，装配官方 35 依赖，再次核对真实 common/KSU 文件。
-- 两棵树均安装 KSU 与实体 UAPI；原生文件系统修改针对实际基础 Image 所在的 common，msm-kernel 同步所需头文件和 KSU 配置。
+- **两棵完整内核树都必须打原生补丁**（common 与 msm-kernel）。run 39532454585 已证明 boot.img 来自 `//msm-kernel:sun16k_perf_dist`：该树 vmlinux 链接时 17 个 `susfs_*` 符号未定义，构建在 68 分钟后失败。只改 common 不足以让运行时内核具备隐藏逻辑。
+- run 39541952386 探测确认：msm-kernel 的 18 个补丁目标文件与 common 逐字节相同，同一份补丁在其上零拒绝、零 fuzz、零偏移，且不存在新文件冲突。
 - common 与 sun_perf 的实际生成配置都必须具备内置 KSU、原生 SUSFS 全部选项，并关闭 MODULE_SIG_PROTECT。
 - 默认 y 的选项不追加至 defconfig，保持严格 savedefconfig 一致性。
 - 仅门禁通过才编译；失败传播使用 `set -euo pipefail`，完整日志始终上传。

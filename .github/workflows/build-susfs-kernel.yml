@@ -111,6 +111,12 @@ jobs:
           export RECOMPILE_EXT_MODULE=0
           mkdir -p out/target/product/sun
           bash kernel_platform/oplus/build/oplus_build_kernel.sh sun perf 2>&1 | tee /mnt/work/build.log
+          # 官方脚本即使 Bazel 失败也可能返回 0，必须显式核对 dist 产物。
+          D="kernel_platform/out/msm-kernel-sun-perf/dist"
+          if [ ! -f "$D/Image" ] || [ ! -f "$D/boot.img" ]; then
+            echo "::error::构建未产出 boot.img/Image，详见 build.log"
+            exit 1
+          fi
 
       - name: 校验实际 boot、Image 与 KSU/SUSFS 链接证据
         if: ${{ inputs.skip_build == 'false' }}
