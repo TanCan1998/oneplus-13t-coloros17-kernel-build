@@ -1,7 +1,10 @@
-# OnePlus 13T 内核云端构建（SukiSU / 原生 SUSFS）
+# OnePlus 13T ColorOS 17（国行）内核云端构建（SukiSU / 原生 SUSFS）
 
-在免费 GitHub runner 上，用一加官方源码与官方构建入口编译 OnePlus 13T（PKX110 / sun / sm8750）内核，
-把 SukiSU 编进内核，并可选地集成**原生 SUSFS**（编进内核，不是 LKM）。
+在免费 GitHub runner 上，用一加官方源码与官方构建入口编译 **一加 13T 国行 ColorOS 17**（PKX110 / sun / sm8750）
+内核，把 SukiSU 编进内核，并可选地集成**原生 SUSFS**（编进内核，不是 LKM）。
+
+> **适用系统：ColorOS V17.0.0，国行 CN 版本（`PKX110_17.0.0.104(CN01)`）。**
+> **不适用于国际版 / OxygenOS 机型，也不保证适用于 16.x 或其他 sm8750 设备。**
 
 仓库只产出构建产物：**不含刷机脚本、不含任何私钥、不含手机备份**。
 
@@ -9,8 +12,9 @@
 
 | 项目 | 值 |
 |---|---|
-| 机型 | OnePlus 13T，型号 PKX110，代号 sun，SoC sm8750 |
-| 官方 manifest 分支 | `oneplus/sm8750_b_16.0.0_oneplus_13t` |
+| 目标系统 | **ColorOS V17.0.0（国行 CN，非国际版 OxygenOS）**，`PKX110_17.0.0.104(CN01)`，`ro.build.version.oplusrom=V17.0.0` |
+| 机型 | OnePlus 13T，型号 PKX110，市场名「一加 13T」，代号 sun，SoC sm8750 |
+| 官方 manifest 分支 | `oneplus/sm8750_b_16.0.0_oneplus_13t`（一加开源仓库当前提供的 16.0.0 分支） |
 | common | `OnePlusOSS/android_kernel_common_oneplus_sm8750` @ `4d611c32bedc11cf3ae46aa5e815dfe35707b93f` |
 | msm-kernel | `OnePlusOSS/android_kernel_oneplus_sm8750` @ `745702d5ed2c0435f2b1d3bb78bc4f48422d4191` |
 | modules / devicetree | `OnePlusOSS/android_kernel_modules_and_devicetree_oneplus_sm8750` @ `6a196f79f77acd55cf302e1696c038e4cad99254` |
@@ -23,9 +27,23 @@
 固定清单以 `susfs-native.lock.json`、`susfs-inputs.lock.json`、`deps.json`、`checksums.txt` 为准；
 每个文件的 SHA256 都记录在锁文件里，构建时逐一核对，不匹配即失败。
 
-**版本落差必须知道**：源码取自 16.0.0 分支 / 16.0.10.500 依赖集，而设备可能已经 OTA 到更新的
-发布版本（补写本文件时设备报告 `PKX110_17.0.0.104(CN01)`）。内核版本串仍是 `6.6.118-android15-8-o-4k`，
-但跨版本 vendor 模块、ABI 与安全补丁差异不保证兼容。
+### 为什么是 ColorOS 17 系统 + 16.0.0 源码
+
+一加开源仓库目前给的是 `16.0.0` 分支，没有 `17.0.0` 分支；而设备系统已升到 **ColorOS 17 国行**。
+两者内核串同为 `6.6.118-android15-8-o-4k`，实测该 16.0.0 源码构建出的 boot 在
+`PKX110_17.0.0.104(CN01)` 上能正常开机、Root 可用（见下文实测记录）。
+
+但**跨大版本不能假定等价**：vendor 模块、ABI/CRC、安全补丁与 17.0.0 原厂内核的差异未逐项核对。
+若后续要跟进 17.0.0 源码，替换锁文件里的 commit 与 SHA256 即可，流程不变。
+
+### 适用范围
+
+| 场景 | 是否适用 |
+|---|---|
+| 一加 13T 国行，ColorOS 17（`PKX110_17.0.0.104(CN01)` 实测） | 已验证可开机 |
+| 一加 13T 国行，ColorOS 16.x | 未验证；源码分支匹配，但 boot/模块组合未实测 |
+| 一加 13T **国际版 / OxygenOS** | **不适用**（分区布局、vbmeta、模块签名与国行不同） |
+| 其他 sm8750 机型（13、13R 等） | **不适用**，机型耦合（sun devicetree） |
 
 ## 这套流程的依据
 
@@ -103,8 +121,9 @@ rfkill → cfg80211 → mac80211 → qca_cld3 整链加载失败（WiFi/蓝牙�
 
 ### 五、补写本文件时的复测（只读）
 
-- 设备：`PKX110_17.0.0.104(CN01)`，fingerprint `OnePlus/PKX110/OP60F5L1:17/...`，槽位 `_b`。
-- `/dev/block/by-name/boot_b` 摘要仍为 `5df9c1dd…`（即上面的 v4 镜像），`su` 正常，内核串不变。
+- 系统：**ColorOS V17.0.0，国行**，`PKX110_17.0.0.104(CN01)`，`ro.build.version.oplusrom=V17.0.0`，
+  市场名「一加 13T」，locale `zh-CN`；fingerprint `OnePlus/PKX110/OP60F5L1:17/...`。
+- 槽位 `_b`，`/dev/block/by-name/boot_b` 摘要仍为 `5df9c1dd…`（即上面的 v4 镜像），`su` 正常，内核串不变。
 
 **以上都不代表**：长期稳定、完整 ABI 兼容、所有 Root 应用可用、任意应用检测通过或服务端风控放行。
 
@@ -112,13 +131,14 @@ rfkill → cfg80211 → mac80211 → qca_cld3 整链加载失败（WiFi/蓝牙�
 
 要把自编译 boot 刷进这台机器，需同时满足：
 
-1. **bootloader 已解锁**。系统内属性可能显示 locked/green，需以 fastbootd 实际只读查询 `unlocked=yes` 为准。
-2. **vbmeta 校验已禁用**（`--disable-verity --disable-verification`），否则 AVB 链不匹配会进 recovery：
+1. **设备必须是国行 ColorOS 17 的一加 13T（PKX110）**。国际版 / OxygenOS、其他机型不适用。
+2. **bootloader 已解锁**。系统内属性可能显示 locked/green，需以 fastbootd 实际只读查询 `unlocked=yes` 为准。
+3. **vbmeta 校验已禁用**（`--disable-verity --disable-verification`），否则 AVB 链不匹配会进 recovery：
    kleaf 用 AOSP testkey 签 AVB footer（公钥 `2597c218…`），而 vbmeta 里 `boot` 是 Chain Partition、
    用一加私钥签名（公钥 `60ce3de1…`）。**没有一加私钥，永远签不出能过校验的 footer**，只能禁用校验。
-3. **先备份** `boot`（对应槽位）与 `vbmeta`，并确认能用 fastboot 恢复；分区大小必须容纳 96 MiB 镜像。
-4. 只刷 `boot`（`boot_a`/`boot_b` 对应当前槽位），**不要**顺带刷 vendor_boot、dtbo、super 或切换槽位。
-5. 禁用 dm-verity 后运行时完整性校验失效；`MODULE_SIG_PROTECT=n` 后 vendor 模块靠 vermagic 匹配加载。
+4. **先备份** `boot`（对应槽位）与 `vbmeta`，并确认能用 fastboot 恢复；分区大小必须容纳 96 MiB 镜像。
+5. 只刷 `boot`（`boot_a`/`boot_b` 对应当前槽位），**不要**顺带刷 vendor_boot、dtbo、super 或切换槽位。
+6. 禁用 dm-verity 后运行时完整性校验失效；`MODULE_SIG_PROTECT=n` 后 vendor 模块靠 vermagic 匹配加载。
 
 参考步骤（本仓库不提供脚本，需自行确认设备与槽位）：
 
@@ -128,8 +148,9 @@ fastboot flash boot_b boot.img                                              # �
 fastboot reboot
 ```
 
-刷后自查：`getprop sys.boot_completed`、`getprop ro.boot.slot_suffix`、`uname -r`、`su -c id`，
-并复算分区摘要与镜像一致。启动失败时只允许回刷本次备份的 boot。
+刷后自查：`getprop sys.boot_completed`、`getprop ro.build.display.id`（应含 `PKX110_17.0.0.104(CN01)`）、
+`getprop ro.boot.slot_suffix`、`uname -r`、`su -c id`，并复算分区摘要与镜像一致。
+启动失败时只允许回刷本次备份的 boot。
 
 ## 私钥与签名
 
@@ -145,8 +166,15 @@ fastboot reboot
 
 ## 风险
 
+- 仅面向国行 ColorOS 17 的 PKX110；国际版 / OxygenOS 与其他机型**不可直接套用**。
 - 刷机前请自行备份 `vbmeta`、`boot`，并确认能通过 fastboot 恢复；本仓库没有任何回滚自动化。
 - 禁用 vbmeta/dm-verity 后完整性校验失效；关闭 MODULE_SIG_PROTECT 减少导出保护。
-- 跨版本（16.0.0 分支源码 vs 设备 17.x 发布版）不保证 vendor 模块、ABI 与安全补丁兼容。
+- 源码是 16.0.0 分支，系统是 ColorOS 17：vendor 模块、ABI 与安全补丁差异未逐项核对。
 - 隐藏能力已被实测**部分未通过**（见上文第四节），不要假定任何 Root/Hook 检测已被完全规避。
 - 源码检查通过不等于编译通过；编译通过不等于可开机、隐藏有效、ABI 完整兼容或长期稳定。
+
+## 说明
+
+- 仓库原名 `oneplus-13t-kernel-build`，为标明目标系统已改名为 `oneplus-13t-coloros17-kernel-build`；
+  GitHub 会把旧链接 301 到新名，`deps.json` 里指向旧仓库的 release 下载地址仍然可用（为避免动到已校验的装配输入，未改写）。
+- 手机侧备份与私有文件不在本仓库与工作流内。
