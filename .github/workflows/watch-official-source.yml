@@ -1,0 +1,49 @@
+name: watch-official-source
+
+# 只读巡检：一加官方 OnePlusOSS 仓库里 13T 分支是否出现新提交、是否出现 17.x 分支。
+# 不下载源码、不编译、不接触设备；有变化才开 issue（同标题只追加评论）。
+
+on:
+  schedule:
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: source-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: 查询官方分支与 HEAD
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: 检出巡检脚本
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 自检
+        run: python3 watch-official-source.py --self-test
+
+      - name: 巡检（只读 API）
+        env:
+          GITHUB_TOKEN: ${${ secrets.GITHUB_TOKEN }}
+          WATCH_OUT: /mnt/watch
+        run: |
+          set -euo pipefail
+          mkdir -p /mnt/watch
+          python3 watch-official-source.py
+
+      - name: 保留巡检结果
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: source-watch-report
+          path: /mnt/watch/
+          if-no-files-found: warn
+          retention-days: 30

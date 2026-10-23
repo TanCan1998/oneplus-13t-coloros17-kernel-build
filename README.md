@@ -79,6 +79,7 @@ rfkill → cfg80211 → mac80211 → qca_cld3 整链加载失败（WiFi/蓝牙�
 | `build-susfs-kernel` | 固定源码门禁 → 装配 35 依赖 → 安装原生 SUSFS → 双配置门禁 → 编译 → 产物与符号复验 |
 | `build-ksu-kernel` | 早期 SukiSU 内置版本，`enable_susfs` 可选 |
 | `susfs-preflight` / `susfs-msm-probe` | 只读探测：补丁可应用性、msm-kernel 目标文件与 common 是否逐字节相同 |
+| `watch-official-source` | 每日只读巡检：官方 13T 分支 HEAD 是否偏离锁定提交、是否出现 17.x 分支；有变化开 issue（`source-watch` 标签） |
 
 手动触发 `build-native-susfs-kernel`，`skip_build=true` 只做装配与配置验证（约 15–25 分钟）。
 产物含 `boot.img`、`Image`、`System.map`、`SHA256SUMS.txt`、两份 `.config` 与全部构建/复验日志。
@@ -177,4 +178,6 @@ fastboot reboot
 
 - 仓库原名 `oneplus-13t-kernel-build`，为标明目标系统已改名为 `oneplus-13t-coloros17-kernel-build`；
   GitHub 会把旧链接 301 到新名，`deps.json` 里指向旧仓库的 release 下载地址仍然可用（为避免动到已校验的装配输入，未改写）。
+- `watch-official-source` 只在 GitHub API 上查询分支名与 HEAD，不下载源码、不编译、不接触设备；
+  公开仓库的定时任务若 60 天无提交会被 GitHub 停用，届时手动 `workflow_dispatch` 一次即可恢复。
 - 手机侧备份与私有文件不在本仓库与工作流内。
