@@ -27,16 +27,22 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: 准备一次性输出目录
+        run: |
+          set -euo pipefail
+          sudo mkdir -p /mnt/watch
+          sudo chown "$(id -u):$(id -g)" /mnt/watch
+          python3 --version
+
       - name: 自检
         run: python3 watch-official-source.py --self-test
 
       - name: 巡检（只读 API）
         env:
-          GITHUB_TOKEN: ${${ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WATCH_OUT: /mnt/watch
         run: |
           set -euo pipefail
-          mkdir -p /mnt/watch
           python3 watch-official-source.py
 
       - name: 保留巡检结果
