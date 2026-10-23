@@ -156,7 +156,9 @@ fastboot reboot
 ## 私钥与签名
 
 **本仓库不包含任何私钥。** 已核对：仓库全部文件里没有 `.pem`/`.key`/`.jks`/`.keystore`、没有
-`-----BEGIN … PRIVATE KEY-----` 或 OpenSSH 私钥块，工作流没有引用 `secrets.*`、签名口令或 token 变量，
+`-----BEGIN … PRIVATE KEY-----` 或 OpenSSH 私钥块；仓库没有配置任何 repository secret 或 variable，
+工作流不使用签名口令，唯一凭据是 GitHub 为每次运行自动注入、运行结束即失效的临时 `GITHUB_TOKEN`
+（仅供 `watch-official-source` 读分支、开 issue），仓库里既没有它的值，也不会有，
 `permissions: contents: read` 且 `persist-credentials: false`。
 
 - `device.config` 里的 `CONFIG_MODULE_SIG_KEY="certs/signing_key.pem"` 是**构建时由内核构建系统现场生成**的
