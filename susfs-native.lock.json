@@ -287,7 +287,7 @@
           "mm/memory.c",
           "security/selinux/avc.c"
         ],
-        "sha256": "661006e58105c92d37eb10fba30207c587ae17f2f6c4127b54bd006b2d760954",
+        "sha256": "c2f55905a197c5d87d8b74875f79a39b6ca4013e794bebb2c2464f02370a04a5",
         "targets": [
           "common",
           "msm-kernel"
