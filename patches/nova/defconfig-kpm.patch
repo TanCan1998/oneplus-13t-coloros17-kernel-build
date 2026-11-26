@@ -1,18 +1,15 @@
 diff --git a/arch/arm64/configs/gki_defconfig b/arch/arm64/configs/gki_defconfig
 --- a/arch/arm64/configs/gki_defconfig
 +++ b/arch/arm64/configs/gki_defconfig
-@@ -46,9 +46,9 @@
+@@ -46,6 +46,7 @@
  # CONFIG_RD_LZO is not set
  CONFIG_BOOT_CONFIG=y
  CONFIG_EXPERT=y
 +CONFIG_KPM=y
  # CONFIG_SYSFS_SYSCALL is not set
  # CONFIG_FHANDLE is not set
--CONFIG_KALLSYMS_ALL=y
- # CONFIG_RSEQ is not set
- CONFIG_PROFILING=y
- CONFIG_ARCH_SUNXI=y
-@@ -103,7 +103,6 @@
+ CONFIG_KALLSYMS_ALL=y
+@@ -103,7 +104,6 @@
  CONFIG_MODVERSIONS=y
  CONFIG_MODULE_SCMVERSION=y
  CONFIG_MODULE_SIG=y
