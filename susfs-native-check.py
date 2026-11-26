@@ -16,12 +16,14 @@ PRESERVE_KSU = [
     "kernel/feature/sucompat.c", "kernel/feature/sucompat.h",
     "kernel/feature/mount_hide.c", "kernel/feature/kernel_umount.c",
     "kernel/feature/selinux_hide.c", "kernel/feature/adb_root.c",
-    "kernel/hook/lsm_hook.c", "kernel/runtime/ksud.c",
+    "kernel/hook/lsm_hook.c",
     "kernel/supercall/dispatch.c", "kernel/supercall/supercall.c",
     "kernel/policy/app_profile.h", "kernel/preinit/preinit.c",
     "kernel/extension/extension.c", "kernel/extension/kpm.c",
     "kernel/extension/cpu_spoof.c", "kernel/selinux/selinux.c",
     "kernel/extension/susfs_extension.c",
+    # kernel/runtime/ksud.c 已由 patches/nova/ksu-avc-kpm.patch 修改（AVC late_init），
+    # 不再作为不可改基线；其 AVC 接线由下方专门断言覆盖。
 ]
 PRESERVE_COMMON = [
     "drivers/input/input.c", "fs/exec.c", "fs/open.c", "fs/read_write.c",
