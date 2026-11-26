@@ -303,6 +303,14 @@
           "kernel/Kconfig"
         ],
         "sha256": "571c46d259aa63834ade4a9fdfe1379cf434c7810a9c60eabdc3007bd4927656"
+      },
+      "defconfig": {
+        "path": "patches/nova/defconfig-kpm.patch",
+        "sha256": "3e0d38db2a3b30d79198852a9d093572c0a9a639782427bb5cfd3bf23a9c90c9",
+        "targets": [
+          "common",
+          "msm-kernel"
+        ]
       }
     },
     "excluded_upstream_common_files": [

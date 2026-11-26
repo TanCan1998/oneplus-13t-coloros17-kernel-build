@@ -65,6 +65,21 @@ for name, tree in TREES.items():
         raise RuntimeError("原生补丁未零拒绝/零偏移应用：" + name)
     print("原生补丁应用成功：", name, flush=True)
 
+# 2b. defconfig：显式开启 KPM、移除被 select 的 KALLSYMS_ALL 与导出保护。
+defcfg = lock["adaptation"]["patches"]["defconfig"]
+defcfg_file = HERE / defcfg["path"]
+if helpers.sha256(defcfg_file) != defcfg["sha256"]:
+    raise RuntimeError("defconfig 补丁哈希不符")
+for name, tree in TREES.items():
+    with defcfg_file.open("rb") as stream:
+        p = subprocess.run(["patch", "--batch", "--forward", "--fuzz=0", "-p1"], cwd=tree,
+                           stdin=stream, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    output = p.stdout.decode("utf-8", "replace")
+    (report / (name + "-defconfig-apply.log")).write_text(output, encoding="utf-8")
+    if p.returncode or list(tree.rglob("*.rej")) or re.search(r"offset|fuzz|FAILED|malformed", output, re.I):
+        raise RuntimeError("defconfig 补丁未零偏移应用：" + name + " :: " + output[-300:])
+    print("defconfig 补丁应用成功：", name, flush=True)
+
 # 3. 获取固定 SukiSU Nova 源码。
 ksu = platform / "KernelSU"
 ksu.mkdir(exist_ok=False)
@@ -141,16 +156,18 @@ for name, tree in TREES.items():
         if index < 0:
             raise RuntimeError("drivers/Kconfig 缺少菜单尾部：" + name)
         p.write_text(text[:index] + '\nsource "drivers/kernelsu/Kconfig"\n' + text[index:])
-    # 默认 y 的 KSU/SUSFS 不写入 defconfig；仅移除会破坏 WiFi 的导出保护。
-    # KPM 由 patches/nova/ksu-avc-kpm.patch 把 Kconfig 默认值改为 y，
-    # 不再向 defconfig 追加 CONFIG_KPM=y：Klean 的配置门禁要求
-    # savedefconfig 与 gki_defconfig 完全一致，手工追加会直接失败。
+    # defconfig 由 patches/nova/defconfig-kpm.patch 在第 2 步统一应用：
+    #   * CONFIG_KPM=y 显式写入（Klean 门禁要求 savedefconfig 与 defconfig 完全一致）；
+    #   * CONFIG_KALLSYMS_ALL=y 移除，因为 CONFIG_KPM select 了它；
+    #   * CONFIG_MODULE_SIG_PROTECT=y 移除，否则 vendor 模块整链加载失败。
     p = tree / "arch/arm64/configs/gki_defconfig"
     lines = p.read_text().splitlines()
-    lines = [l for l in lines if l not in ["CONFIG_MODULE_SIG_PROTECT=y", "# CONFIG_MODULE_SIG_PROTECT is not set"]]
-    if any("CONFIG_KSU" in l for l in lines):
-        raise RuntimeError("原始 defconfig 意外含 KSU 项：" + name)
-    p.write_text("\n".join(lines) + "\n")
+    if "CONFIG_KPM=y" not in lines:
+        raise RuntimeError("defconfig 缺少 CONFIG_KPM=y：" + name)
+    if "CONFIG_KALLSYMS_ALL=y" in lines:
+        raise RuntimeError("defconfig 仍含 KALLSYMS_ALL，会与 KPM select 冲突：" + name)
+    if "CONFIG_MODULE_SIG_PROTECT=y" in lines:
+        raise RuntimeError("defconfig 仍开启导出保护：" + name)
     shutil.copy2(p, report / (name + "-gki_defconfig"))
     print("KSU 安装完成：", name, flush=True)
 shutil.copytree(ksu, report / "patched-ksu")

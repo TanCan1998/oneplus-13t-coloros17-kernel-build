@@ -100,6 +100,25 @@ def main():
         shutil.copytree(sources[name], args.out / "base" / name)
         trees[name] = tree
         print(name, "补丁退出码", p.returncode, "拒绝", len(rejects), "偏移/错误", len(offsets), flush=True)
+    # defconfig 补丁同样要能零偏移应用（两棵内核树共用一份）。
+    defcfg = LOCK["adaptation"]["patches"].get("defconfig")
+    if defcfg:
+        dfile = HERE / defcfg["path"]
+        if helpers.sha256(dfile) != defcfg["sha256"]:
+            raise RuntimeError("defconfig 补丁 SHA256 不符")
+        dtree = args.work / "defconfig-check"
+        shutil.copytree(trees["common"], dtree)
+        with dfile.open("rb") as stream:
+            dp = subprocess.run([args.patch, "--batch", "--forward", "--fuzz=0", "-p1"],
+                                cwd=dtree, stdin=stream, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        dout = dp.stdout.decode("utf-8", "replace")
+        (args.out / "defconfig-apply.log").write_text(dout, encoding="utf-8")
+        drej = [x.relative_to(dtree).as_posix() for x in dtree.rglob("*.rej")]
+        doff = [line for line in dout.splitlines() if re.search(r"offset|fuzz|FAILED|malformed", line, re.I)]
+        results.append({"target": "defconfig", "patch": defcfg["path"],
+                        "exit_code": dp.returncode, "rejects": drej, "offsets_or_errors": doff})
+        print("defconfig 补丁退出码", dp.returncode, "拒绝", len(drej), "偏移/错误", len(doff), flush=True)
+
     (args.out / "result.json").write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
     if any(r["exit_code"] or r["rejects"] or r["offsets_or_errors"] for r in results):
         return 1
