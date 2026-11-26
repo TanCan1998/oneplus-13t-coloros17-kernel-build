@@ -1,0 +1,62 @@
+--- a/kernel/include/uapi/feature.h
++++ b/kernel/include/uapi/feature.h
+@@ -16,6 +16,12 @@
+      */
+     KSU_FEATURE_MOUNT_HIDE = 16,
+ 
++    /*
++     * Upstream Nova mainline numbers AVC spoofing at 10003; keep the same id so
++     * the manager and the on-disk .feature_config agree across both branches.
++     */
++    KSU_FEATURE_AVC_SPOOF = 10003,
++
+     KSU_FEATURE_MAX
+ };
+ 
+--- a/kernel/ksu_main.c
++++ b/kernel/ksu_main.c
+@@ -40,6 +40,7 @@
+ #include "feature/selinux_hide.h"
+ #endif
+ #include "feature/shell_su_adb_only.h"
++#include "feature/avc_spoof.h"
+ #include "runtime/ksud.h"
+ #include "sulog/event.h"
+ #include "sulog/fd.h"
+@@ -126,6 +127,7 @@
+ #include "feature/selinux_hide.c"
+ #endif
+ #include "feature/shell_su_adb_only.c"
++#include "feature/avc_spoof.c"
+ #include "feature/mount_hide.c"
+ #include "runtime/ksud.c"
+ 
+@@ -194,6 +196,8 @@
+     ksu_adb_root_init();
+ 
+     ksu_shell_su_adb_only_init();
++
++    ksu_avc_spoof_init();
+ 
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+     ksu_selinux_hide_init();
+--- a/kernel/policy/feature.c
++++ b/kernel/policy/feature.c
+@@ -10,6 +10,7 @@
+     [KSU_FEATURE_SELINUX_HIDE] = "selinux_hide",
+     [KSU_FEATURE_SHELL_SU_ADB_ONLY] = "shell_su_adb_only",
+     [KSU_FEATURE_MOUNT_HIDE] = "mount_hide",
++    [KSU_FEATURE_AVC_SPOOF] = "avc_spoof",
+ };
+ 
+ // Features forced by boot config. Written only while parsing module params
+--- a/kernel/runtime/ksud.c
++++ b/kernel/runtime/ksud.c
+@@ -100,6 +100,7 @@
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+     ksu_selinux_hide_drop_backup_if_unused();
+ #endif
++    ksu_avc_spoof_late_init();
+ }
+ 
+ #define MAX_ARG_STRINGS 0x7FFFFFFF

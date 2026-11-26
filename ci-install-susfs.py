@@ -90,6 +90,20 @@ for rel, item in lock["adaptation"].get("additions", {}).items():
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, dest)
 
+# 上游文件改动（AVC feature ID / 注册表 / 启动钩子）以补丁形式应用，要求零偏移。
+ksu_patch = lock["adaptation"]["patches"]["ksu"]
+if ksu_patch.get("path"):
+    patch_file = HERE / ksu_patch["path"]
+    if helpers.sha256(patch_file) != ksu_patch["sha256"]:
+        raise RuntimeError("KSU 侧补丁哈希不符")
+    with patch_file.open("rb") as stream:
+        proc = subprocess.run(["patch", "--batch", "--forward", "--fuzz=0", "-p1"], cwd=ksu,
+                              stdin=stream, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    out = proc.stdout.decode("utf-8", "replace")
+    (report / "ksu-avc-apply.log").write_text(out, encoding="utf-8")
+    if proc.returncode or list(ksu.rglob("*.rej")) or re.search(r"offset|fuzz|FAILED|malformed", out, re.I):
+        raise RuntimeError("KSU 侧补丁未零拒绝/零偏移应用：" + out[-400:])
+
 print("SukiSU Nova 源码校验通过：", len(source["files"]), "个文件",
       "(+%d 新增)" % len(lock["adaptation"].get("additions", {})), flush=True)
 

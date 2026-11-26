@@ -86,7 +86,7 @@
         "kernel/include/ksu.h": "cb90d626e14593d1b99d82a07592186f45c379d135ea92079c9ae6a7a76847ac",
         "kernel/include/uapi/app_profile.h": "dffad173122bb7bb183a61b5c24269e3cb36e3d4f22598cd34c0130945bed615",
         "kernel/include/uapi/extension.h": "de212dc887011c47a03794ab25341832a9fcfe6c0b7c3cb69a319be85381feb9",
-        "kernel/include/uapi/feature.h": "8a73a3fa6baa5c21d067e3b6be645519b87b70c29fe710b414dc64164eaaef9f",
+        "kernel/include/uapi/feature.h": "746a728a375e09c61e8d02ce5ff3bfe8e8fbe809b232b2514dd7025419f8cd63",
         "kernel/include/uapi/ksu.h": "19fbb0cec86dc2d93ad6eaea1197d3d8a3f488b74574daaf2d1e6a3e9e69ac36",
         "kernel/include/uapi/manager.h": "81461705e4088490645051292255be1571e46ccac0448fab8b41b700e5180227",
         "kernel/include/uapi/selinux.h": "2650c0dd0f9075b19035e311e2dbdcec520fa9971d24db4c950e1281e83c09cd",
@@ -104,7 +104,7 @@
         "kernel/kernel_compat.c": "15448d0031ce24bf113888033d435653290aba68e4c8d05f4f219dd58cbb334a",
         "kernel/kernel_compat.h": "a7089d466f2891f1be12097fe1e1ba1eb2d97aeef9613a33ded03475ee0f291d",
         "kernel/kernel_includes.h": "4e74a6beccf82890c691ff79ad7fac5156e7c164b51ff46f87986f8f0459eeb2",
-        "kernel/ksu_main.c": "a8686aaea9a8e02f76c9f247ea8b75122c6f7acdc8ab07244ff0873340e8e5f2",
+        "kernel/ksu_main.c": "7ff4e802e48e1a4c51e6c9442dda73be1763f0c7ae98885d72379fff972ea235",
         "kernel/manager/apk_sign.c": "20b8328c3ac20bb4ce87b1228e13d07704aa4e9e7acfcec230dcb0e42b3b95d8",
         "kernel/manager/apk_sign.h": "e5a69d657e0ab5197e0922f963583d88ec73d99df1fbcc241af546c1a3c3e272",
         "kernel/manager/manager_identity.h": "e645d04647ed6d1ce2478d5816644e7041b5ae51b12ef2e5654d4662ec223e9a",
@@ -118,7 +118,7 @@
         "kernel/policy/allowlist.h": "d65cf7ac716033ec2bbf31d5e1d69c1ea9be87dfcd76daf92a09ba3f7098f1db",
         "kernel/policy/app_profile.c": "fbbbc70f3cb853249d63a598702c5b8f5f7e374a82b472ede5b24b996c79268f",
         "kernel/policy/app_profile.h": "1f5d480930f49fd4b07f7f5a6927271e0417e6f8a322beca5c9dc132aa20e84b",
-        "kernel/policy/feature.c": "d8b09bbd2f1215afc0a502f231c2d0b8be2f3284863e0605491f22cca81c350a",
+        "kernel/policy/feature.c": "26100b12289e6beb92ca3a4c8f453f9a9112ec97bddb44f7516a23e95f0bbdce",
         "kernel/policy/feature.h": "ab574ce1e655970e345d2dd822c376b7f60cfca64e78e9807f179798c5e97e9a",
         "kernel/preinit/blob.S": "5d6728571f07ebbc60f6ab82f54d59a6c0833229fe21e7f827f7fbfca0dea23c",
         "kernel/preinit/common/preinit.c": "0e57bad0586c834c32134228f119509e891082e4c830eafdcc532b6265e3230a",
@@ -193,7 +193,7 @@
         "kernel/preinit/runner/nolibc/types.h": "2027c8c1b3c03acbcbcaab375d86c0f8f8ba5aa8ad084cd4f36953444f361279",
         "kernel/preinit/runner/nolibc/unistd.h": "d36553a8c3e0016c3eb0ed24c09942948c39ff521aa26a3247ff39d3420e69c5",
         "kernel/preinit/runner/runner.c": "9460c7529e9f86a72ff9da3faaef01a1e7e3ccf280605c0943c2461136906abf",
-        "kernel/runtime/ksud.c": "d481e166e36ce0d4830a7867649cdf70798f47c85f59c0c6ab11682eddc33047",
+        "kernel/runtime/ksud.c": "8909bf195734cdbb7224de16ee712f3ad269790b2cb962beb74a1eecfc4cfc3b",
         "kernel/runtime/ksud.h": "eec2da42293659a293d947df4cdcb78ba4745545b2c88019fe4e4ca1f5a85eb1",
         "kernel/selinux/rules.c": "7437f6b5c7eac12716c0c48ac8d89e341d0730da54a98be9b1974a4c51ff7670",
         "kernel/selinux/selinux.c": "4754bd9aabcf332a9ab5a001be6ec345d5e19cc5973df0a030e9fd437512c0b6",
@@ -294,10 +294,14 @@
         ]
       },
       "ksu": {
-        "path": null,
-        "files": [],
-        "sha256": null,
-        "note": "Nova builtin 自带 SUSFS 桥接（supercall/dispatch.c + selinux/selinux.c），无需源码补丁"
+        "path": "patches/nova/ksu-avc-kpm.patch",
+        "files": [
+          "kernel/include/uapi/feature.h",
+          "kernel/ksu_main.c",
+          "kernel/policy/feature.c",
+          "kernel/runtime/ksud.c"
+        ],
+        "sha256": "fbd278a4e288f594805723b0c4e044fd3e670b906442c6bfb0951e7ba48cad2e"
       }
     },
     "excluded_upstream_common_files": [
