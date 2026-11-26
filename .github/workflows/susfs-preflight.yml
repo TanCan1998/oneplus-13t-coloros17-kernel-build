@@ -24,17 +24,18 @@ jobs:
           sudo chown "$(id -u):$(id -g)" /mnt/work
           df -h /mnt
 
-      - name: 固定源码并检查两侧 SUSFS 补丁
-        env:
-          SUSFS_PREFLIGHT_WORK: /mnt/work/susfs-preflight
-          SUSFS_PREFLIGHT_OUT: /mnt/work/susfs-report
-        run: python3 susfs-preflight.py
+      - name: 固定 Nova 源码并检查内核侧 SUSFS 补丁
+        run: |
+          set -euo pipefail
+          python3 susfs-native-preflight.py \
+            --work /mnt/work/susfs-native-preflight \
+            --out /mnt/work/susfs-source-report
 
       - name: 保留完整冲突和源码证据
         if: always()
         uses: actions/upload-artifact@v7.0.2
         with:
           name: susfs-preflight
-          path: /mnt/work/susfs-report/
+          path: /mnt/work/susfs-source-report/
           if-no-files-found: error
           retention-days: 14

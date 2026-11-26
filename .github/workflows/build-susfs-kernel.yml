@@ -124,6 +124,12 @@ jobs:
           set -euo pipefail
           python3 ci-verify-susfs-artifacts.py 2>&1 | tee /mnt/work/artifact-verification.log
 
+      - name: 校验三项扩展已编入内核
+        if: ${{ inputs.skip_build == 'false' }}
+        run: |
+          set -euo pipefail
+          python3 ci-verify-extensions.py 2>&1 | tee /mnt/work/extension-verification.log
+
       - name: 保留构建产物和完整失败证据
         if: always()
         uses: actions/upload-artifact@v7.0.2

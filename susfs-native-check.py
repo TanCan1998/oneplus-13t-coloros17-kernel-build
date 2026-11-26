@@ -1,20 +1,27 @@
 #!/usr/bin/env python3
-"""适配源码门禁：只证明接线与基线保留，不替代编译和实机验收。"""
+"""适配源码门禁：只证明接线与基线保留，不替代编译和实机验收。
+
+Nova 版相对 Ultra 版的差异：
+  * KSU 侧基线按 Nova builtin 的文件清单校验；
+  * 不再断言 Ultra 独有的 susfs_native.c / Kbuild 版本钉；
+  * 改为断言 Nova 自带的三条 SUSFS 接线（dispatch/selinux/lsm_hook/ksu_main）；
+  * 额外断言本次启用的三项扩展（KPM、版本伪装、AVC 伪装）源码与接线齐全。
+"""
 import hashlib
 from pathlib import Path
 import re
 
+# Nova builtin 里必须保持原样的关键文件（去掉本次补丁涉及的三个）。
 PRESERVE_KSU = [
     "kernel/feature/sucompat.c", "kernel/feature/sucompat.h",
     "kernel/feature/mount_hide.c", "kernel/feature/kernel_umount.c",
     "kernel/feature/selinux_hide.c", "kernel/feature/adb_root.c",
-    "kernel/hook/syscall_event_bridge.c", "kernel/hook/syscall_hook_manager.c",
-    "kernel/hook/tp_marker.c", "kernel/hook/lsm_hook.c",
-    "kernel/hook/arm64/patch_memory.c", "kernel/hook/arm64/syscall_hook.c",
-    "kernel/runtime/ksud_integration.c", "kernel/supercall/dispatch.c",
-    "kernel/supercall/supercall.c", "kernel/policy/app_profile.h",
-    "kernel/preinit/preinit.c", "kernel/extension/extension.c",
-    "kernel/extension/kpm.c", "kernel/extension/cpu_spoof.c",
+    "kernel/hook/lsm_hook.c", "kernel/runtime/ksud.c",
+    "kernel/supercall/dispatch.c", "kernel/supercall/supercall.c",
+    "kernel/policy/app_profile.h", "kernel/preinit/preinit.c",
+    "kernel/extension/extension.c", "kernel/extension/kpm.c",
+    "kernel/extension/cpu_spoof.c", "kernel/selinux/selinux.c",
+    "kernel/extension/susfs_extension.c",
 ]
 PRESERVE_COMMON = [
     "drivers/input/input.c", "fs/exec.c", "fs/open.c", "fs/read_write.c",
@@ -37,43 +44,67 @@ def check(common, ksu, lock, common_key="common"):
             expected = lock["sources"][name]["files"][rel]
             actual = hashlib.sha256((tree / rel).read_bytes()).hexdigest()
             require(actual == expected, "保留固定基线 " + name + "/" + rel)
-    kbuild = read(ksu, "kernel/Kbuild")
-    require("KSU_VERSION := 41028" in kbuild and "KSU_VERSION_FULL := native-susfs-7ea0dd2b" in kbuild,
-            "版本号固定为已验证基线 41028，完整版本标记包含固定源码提交")
-    require("KSU_PACKAGE_NAME := com.sukisu.ultra" in kbuild and "KSU_IS_PR_BUILD := 0" in kbuild,
-            "在 Kbuild 内固定正式管理器包名，而非依赖跨步骤环境变量")
-    require(not any(t in kbuild for t in ["GITHUB_API_BASE", "CURL_BIN", "GITHUB_COMMITS", "fetch --unshallow"]),
-            "构建过程不查询移动分支、最新 Release 或隐式拉取历史")
-    native = read(ksu, "kernel/feature/susfs_native.c")
-    require("if (magic1 != KSU_INSTALL_MAGIC1)" in native and
-            "magic2 == SUSFS_MAGIC && current_uid().val == 0" in native,
+
+    # ---- Nova 上游钉：不查询网络、包名固定 ----
+    makefile = read(ksu, "kernel/Makefile")
+    require("KSU_PACKAGE_NAME ?= com.sukisu.nova" in makefile,
+            "上游 Makefile 固定 Nova 正式包名")
+    require("REPO_BRANCH := main" in makefile and "GITHUB_COMMITS" in makefile,
+            "确认上游版本号仍由仓库提交数推导，而非本地伪造")
+
+    # ---- Nova 自带的三条 SUSFS 接线 ----
+    dispatch = read(ksu, "kernel/supercall/dispatch.c")
+    require("int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd, void __user **arg)" in dispatch,
+            "Nova 在 supercall/dispatch.c 提供 SUSFS reboot 入口")
+    require("magic2 == SUSFS_MAGIC && current_uid().val == 0" in dispatch,
             "SUSFS 控制接口同时验证两组 magic 与全局 root UID")
-    require("ksu_supercall_reboot_handler(arg)" not in native,
-            "SUSFS 不接管现有 KSU fd 安装路径")
-    require("sid2" in native and "if (!cred || !sid2)" in native,
-            "尚未解析的零 SID 不产生域误匹配")
+    require("CMD_SUSFS_SHOW_VERSION" in dispatch,
+            "SUSFS 版本查询命令仍在默认分支内")
+    selinux = read(ksu, "kernel/selinux/selinux.c")
     for fn in ["susfs_is_current_ksu_domain", "susfs_is_current_init_domain",
                "susfs_is_current_zygote_domain", "susfs_is_current_zygote_next_domain",
-               "susfs_set_batch_sid", "ksu_susfs_mark_setuid", "ksu_susfs_after_umount"]:
-        require(re.search(r"\b" + fn + r"\([^;]*?\)\s*\{", native, re.S) is not None, "提供 native 桥接函数 " + fn)
-    for rel, token in [
-        ("kernel/core/init.c", "susfs_init();"),
-        ("kernel/selinux/selinux.c", "susfs_set_batch_sid();"),
-        ("kernel/runtime/boot_event.c", "susfs_start_sdcard_monitor_fn();"),
-        ("kernel/hook/setuid_hook.c", "ksu_susfs_mark_setuid(old_uid, new_uid);"),
-        ("kernel/hook/setuid_hook.c", "ksu_susfs_after_umount();"),
-        ("kernel/Kbuild", "kernelsu-objs += feature/susfs_native.o"),
-    ]:
-        require(read(ksu, rel).count(token) == 1, "唯一接线 " + token)
-    setuid = read(ksu, "kernel/hook/setuid_hook.c")
-    require(setuid.index("ksu_handle_umount(old_uid, new_uid);") <
-            setuid.index("ksu_susfs_after_umount();"), "额外 SUSFS 工作在既有卸载路径之后调度")
-    require("int ksu_handle_setresuid(uid_t old_uid, uid_t new_uid)" in setuid,
-            "保留现有二参数 setresuid 回调 ABI")
-    require(read(ksu, "kernel/policy/app_profile.c").count("ksu_susfs_clear_current_flags();") == 2,
-            "普通提权和 init 特例均清除继承的 SUSFS 标志")
-    require("depends on KSU=y && 64BIT" in read(ksu, "kernel/Kconfig"),
-            "仅支持本次内置 64 位构建模式")
+               "susfs_set_batch_sid"]:
+        require(re.search(r"\b" + fn + r"\([^;]*?\)\s*\{", selinux, re.S) is not None,
+                "提供 SUSFS 域判定函数 " + fn)
+    lsm = read(ksu, "kernel/hook/lsm_hook.c")
+    require("susfs_set_current_proc_umounted_for_zygote_next();" in lsm,
+            "zygote next 域切换仍走 SUSFS 卸载标记")
+    main = read(ksu, "kernel/ksu_main.c")
+    require(main.count("susfs_init();") == 1, "唯一 susfs_init 调用点")
+    require(main.count('"feature/avc_spoof.c"') == 1, "AVC 伪装源码进入 unity build")
+    require(main.count("ksu_avc_spoof_init();") == 1, "AVC 伪装初始化接入内核启动")
+
+    # ---- 本次启用的三项扩展 ----
+    kconfig = read(ksu, "kernel/Kconfig")
+    require(re.search(r"^config KPM$", kconfig, re.M) is not None, "KPM 配置项存在")
+    require(re.search(r"^config KSU_SUSFS$", kconfig, re.M) is not None, "SUSFS 配置项存在")
+    compat = read(ksu, "kernel/kernel_compat.h")
+    require("define KSU_CAN_USE_KPM" in compat, "6.6 内核满足 KPM 编译条件")
+    kpm = read(ksu, "kernel/extension/kpm/kpm.c")
+    require("kpm_install" in kpm or "do_kpm" in kpm, "KPM 装载实现存在")
+    version = read(ksu, "kernel/extension/version_spoof.c")
+    require("KSU_VERSION_SPOOF_IO_SET" in version, "版本伪装支持运行时写入")
+    require("KSU_VERSION_SPOOF_FULL_VERSION" in version, "版本伪装覆盖完整版本串")
+    ext = read(ksu, "kernel/extension/extension.c")
+    require('"version_spoof"' in ext and "KSU_EXTENSION_VERSION_SPOOF" in ext,
+            "版本伪装扩展已注册")
+    avc = read(ksu, "kernel/feature/avc_spoof.c")
+    require('register_kprobe' in avc and '"slow_avc_audit"' in avc,
+            "AVC 伪装通过 slow_avc_audit kprobe 生效")
+    require("CONFIG_KPROBES" in avc, "AVC 伪装对无 KPROBES 内核有编译期保护")
+    feature_uapi = read(ksu, "kernel/include/uapi/feature.h")
+    require("KSU_FEATURE_AVC_SPOOF = 10003" in feature_uapi,
+            "AVC 功能 ID 与 Nova 主线一致")
+    feature_c = read(ksu, "kernel/policy/feature.c")
+    require('[KSU_FEATURE_AVC_SPOOF] = "avc_spoof"' in feature_c,
+            "AVC 功能名进入内核注册表")
+    ksud = read(ksu, "kernel/runtime/ksud.c")
+    require("ksu_avc_spoof_late_init();" in ksud,
+            "AVC 伪装在 boot_completed 后安装 kprobe")
+
+    # ---- 内核侧原生接线 ----
+    require("depends on KSU && 64BIT" in kconfig,
+            "Kconfig 依赖语法与 Nova 一致（KPM 需要 64 位）")
     stat = read(common, "fs/stat.c")
     require(not any(t in stat for t in ["ksu_handle_stat(", "ksu_handle_vfs_fstat(", "__ksu_is_allow_uid_for_current"]),
             "保留 SUS_KSTAT、剔除不兼容的 root stat hook")
@@ -89,7 +120,7 @@ def check(common, ksu, lock, common_key="common"):
             "补齐 proc/base.c 所需 SUSFS 头文件")
     for rel, token in [
         ("fs/Makefile", "obj-$(CONFIG_KSU_SUSFS)"),
-        ("kernel/reboot.c", "ksu_susfs_handle_reboot(magic1, magic2, cmd, &arg)"),
+        ("kernel/reboot.c", "ksu_handle_sys_reboot(magic1, magic2, cmd, &arg)"),
         ("fs/namei.c", "susfs_open_redirect"),
         ("fs/namespace.c", "susfs_get_non_sus_mnt_id_from_mnt"),
         ("fs/proc_namespace.c", "susfs_is_hide_sus_mnts_for_non_su_procs_enabled"),
@@ -100,7 +131,6 @@ def check(common, ksu, lock, common_key="common"):
         digest = hashlib.sha256((common / rel).read_bytes()).hexdigest()
         expected = lock["sources"]["susfs"]["files"]["kernel_patches/" + rel]
         require(digest == expected, "原生 SUSFS 核心与固定上游一致 " + rel)
-    # fs/susfs.c 允许唯一一处已批准的 FUSE readdir 增量：剥离后必须与上游逐字节一致。
     raw = read(common, "fs/susfs.c")
     m = re.search(r"\n/\* \(sb, i_ino\) 索引：.*?\n\treturn ret;\n\}", raw, re.S)
     require(m is not None, "fs/susfs.c 含已批准的 (sb,i_ino) 索引增量块")

@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""核验固定源码、零偏移应用原生 SUSFS 适配补丁并保留完整证据。"""
+"""核验固定源码、零偏移应用原生 SUSFS 适配补丁并保留完整证据。
+
+Nova 版差异：
+  * 只有内核侧（common）需要补丁；KSU 侧整体复制，item["path"] 为 None 时跳过；
+  * KSU 基线改为 Nova builtin 的完整文件清单。
+"""
 import argparse
 import importlib.util
 import json
@@ -31,7 +36,6 @@ def main():
     shutil.copy2(HERE / "susfs-native.lock.json", args.out / "inputs.lock.json")
     sources = {}
     downloads = []
-    # 适配补丁本身包含新增 SUSFS 普通文件，因此不另行复制或隐式覆盖。
     for name in ["common", "ksu"]:
         spec = LOCK["sources"][name]
         base = args.work / (name + "-base")
@@ -57,10 +61,20 @@ def main():
     trees = {}
     for name in ["common", "ksu"]:
         item = LOCK["adaptation"]["patches"][name]
+        tree = args.work / (name + "-patched")
+        if not item.get("path"):
+            # Nova builtin 自带 SUSFS 桥接，KSU 侧不需要任何源码改动。
+            shutil.copytree(sources[name], tree)
+            results.append({"target": name, "patch": None, "exit_code": 0,
+                            "rejects": [], "offsets_or_errors": []})
+            shutil.copytree(tree, args.out / "patched" / name)
+            shutil.copytree(sources[name], args.out / "base" / name)
+            trees[name] = tree
+            print(name, "无需补丁（整体复制）", flush=True)
+            continue
         patch = HERE / item["path"]
         if helpers.sha256(patch) != item["sha256"]:
             raise RuntimeError("适配补丁 SHA256 不符：" + name)
-        tree = args.work / (name + "-patched")
         shutil.copytree(sources[name], tree)
         with patch.open("rb") as stream:
             p = subprocess.run([args.patch, "--batch", "--forward", "--fuzz=0", "-p1"],
@@ -69,7 +83,8 @@ def main():
         (args.out / (name + "-apply.log")).write_text(output, encoding="utf-8")
         rejects = [p.relative_to(tree).as_posix() for p in tree.rglob("*.rej")]
         offsets = [line for line in output.splitlines() if re.search(r"offset|fuzz|FAILED|malformed", line, re.I)]
-        results.append({"target": name, "exit_code": p.returncode, "rejects": rejects, "offsets_or_errors": offsets})
+        results.append({"target": name, "patch": item["path"], "exit_code": p.returncode,
+                        "rejects": rejects, "offsets_or_errors": offsets})
         shutil.copytree(tree, args.out / "patched" / name)
         shutil.copytree(sources[name], args.out / "base" / name)
         trees[name] = tree
@@ -79,9 +94,9 @@ def main():
         return 1
     checks = check(trees["common"], trees["ksu"], LOCK)
     (args.out / "source-checks.json").write_text(json.dumps(checks, ensure_ascii=False, indent=2), encoding="utf-8")
-    title = "# 原生 SUSFS 适配源码门禁\n\n"
-    title += "common 与 SukiSU 补丁均零拒绝、零 fuzz、零偏移；" + str(len(checks)) + " 项源码接线/基线保留检查通过。\n\n"
-    title += "保留现有 SukiSU root hook、preinit、管理器和扩展；新增内核原生文件系统逻辑，不使用 SUSFS LKM。\n\n"
+    title = "# 原生 SUSFS + SukiSU Nova 适配源码门禁\n\n"
+    title += "内核补丁零拒绝、零 fuzz、零偏移；" + str(len(checks)) + " 项源码接线/基线保留检查通过。\n\n"
+    title += "SukiSU 源为 Nova builtin（自带 SUSFS 桥接）；启用 KPM、版本信息自定义、AVC 日志伪装。\n\n"
     title += "**尚未证明编译或运行兼容；本作业不编译内核、不访问手机。**\n"
     (args.out / "SUMMARY.md").write_text(title, encoding="utf-8")
     if os.environ.get("GITHUB_STEP_SUMMARY"):
