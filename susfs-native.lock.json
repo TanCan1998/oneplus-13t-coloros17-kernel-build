@@ -302,7 +302,7 @@
           "kernel/runtime/ksud.c",
           "kernel/Kconfig"
         ],
-        "sha256": "2f66c9dee73ab51da908511612b8e070ef19d084fda01de38ad4080951a8e0f6"
+        "sha256": "571c46d259aa63834ade4a9fdfe1379cf434c7810a9c60eabdc3007bd4927656"
       }
     },
     "excluded_upstream_common_files": [
