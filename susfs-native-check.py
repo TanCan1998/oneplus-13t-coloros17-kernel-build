@@ -19,7 +19,7 @@ PRESERVE_KSU = [
     "kernel/hook/lsm_hook.c",
     "kernel/supercall/dispatch.c", "kernel/supercall/supercall.c",
     "kernel/policy/app_profile.h", "kernel/preinit/preinit.c",
-    "kernel/extension/extension.c", "kernel/extension/kpm.c",
+    "kernel/extension/kpm.c",
     "kernel/extension/cpu_spoof.c", "kernel/selinux/selinux.c",
     "kernel/extension/susfs_extension.c",
     # kernel/runtime/ksud.c 已由 patches/nova/ksu-avc-kpm.patch 修改（AVC late_init），
