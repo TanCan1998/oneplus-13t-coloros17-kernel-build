@@ -300,9 +300,10 @@
           "kernel/ksu_main.c",
           "kernel/policy/feature.c",
           "kernel/runtime/ksud.c",
-          "kernel/Kconfig"
+          "kernel/Kconfig",
+          "kernel/extension/extension.c"
         ],
-        "sha256": "2752cb9a4c29157114f71cb0f3ce168f0cefdeaefe9409c24237f0413841aab5"
+        "sha256": "164448e411a6ea6172baea2c6d473637e4e42f36601d9254d9142818c1a43cdf"
       },
       "defconfig": {
         "path": "patches/nova/defconfig-kpm.patch",

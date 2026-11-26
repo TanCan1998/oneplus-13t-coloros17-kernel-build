@@ -85,6 +85,17 @@ def check(common, ksu, lock, common_key="common"):
     require(main.count("ksu_avc_spoof_init();") == 1, "AVC 伪装初始化接入内核启动")
 
     # ---- 本次启用的三项扩展 ----
+    # unity build 下 extension.c 与 policy/feature.c 会展开进同一编译单元，
+    # 静态符号必须不同名，否则 AVC 功能把 KSU_FEATURE_MAX 抬高后位图尺寸不同会重定义。
+    ext_src = read(ksu, "kernel/extension/extension.c")
+    require("extension_forced_mask" in ext_src and "extension_forced_pending" in ext_src,
+            "extension.c 的强制位图已改名为 extension_*，避免与 feature.c 同名冲突")
+    require(re.search(r"(?<!extension_)forced_mask", ext_src) is None,
+            "extension.c 不得再引用裸 forced_mask")
+    # 内核侧未实现 priority uid filter，Kconfig 默认必须是 n。
+    require(re.search(r"^config KSU_SUSFS_PRIORITY_UID_FILTER\n(?:.*\n)*?\tdefault n", kconfig, re.M) is not None,
+            "PRIORITY_UID_FILTER 默认 n（内核侧未实现对应 SUSFS 命令）")
+
     kconfig = read(ksu, "kernel/Kconfig")
     require(re.search(r"^config KPM$", kconfig, re.M) is not None, "KPM 配置项存在")
     require(re.search(r"^config KPM\n(?:.*\n)*?\s+default y", kconfig, re.M) is not None,
