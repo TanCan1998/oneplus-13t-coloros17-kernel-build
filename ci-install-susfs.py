@@ -76,8 +76,10 @@ for name, tree in TREES.items():
                            stdin=stream, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     output = p.stdout.decode("utf-8", "replace")
     (report / (name + "-defconfig-apply.log")).write_text(output, encoding="utf-8")
-    if p.returncode or list(tree.rglob("*.rej")) or re.search(r"offset|fuzz|FAILED|malformed", output, re.I):
-        raise RuntimeError("defconfig 补丁未零偏移应用：" + name + " :: " + output[-300:])
+    # common 与 msm-kernel 的 gki_defconfig 存在 1 行差异，允许 patch 报告 offset，
+    # 但仍要求零 fuzz、零拒绝；内容是否真的改对由下方断言兜底。
+    if p.returncode or list(tree.rglob("*.rej")) or re.search(r"fuzz|FAILED|malformed", output, re.I):
+        raise RuntimeError("defconfig 补丁应用失败：" + name + " :: " + output[-300:])
     print("defconfig 补丁应用成功：", name, flush=True)
 
 # 3. 获取固定 SukiSU Nova 源码。
