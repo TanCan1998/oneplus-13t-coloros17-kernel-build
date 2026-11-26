@@ -166,8 +166,8 @@ for name, tree in TREES.items():
     lines = p.read_text().splitlines()
     if "CONFIG_KPM=y" in lines:
         raise RuntimeError("defconfig 不应写 CONFIG_KPM（由 Kconfig 默认 y 提供）：" + name)
-    if "CONFIG_KALLSYMS_ALL=y" not in lines:
-        raise RuntimeError("defconfig 缺少 CONFIG_KALLSYMS_ALL=y：" + name)
+    if "CONFIG_KALLSYMS_ALL=y" in lines:
+        raise RuntimeError("defconfig 应移除 KALLSYMS_ALL（KPM select 后它成为默认值）：" + name)
     if "CONFIG_MODULE_SIG_PROTECT=y" in lines:
         raise RuntimeError("defconfig 仍开启导出保护：" + name)
     shutil.copy2(p, report / (name + "-gki_defconfig"))

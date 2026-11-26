@@ -306,7 +306,7 @@
       },
       "defconfig": {
         "path": "patches/nova/defconfig-kpm.patch",
-        "sha256": "cf6133f75cdbed470c603ac24b8dca969531d0b3f9f7ce1672674cbb85a17ecd",
+        "sha256": "7879f38be89cd9f4b52fd51d8a94f0bfc6f31ab0d426ac2b0fcf6bf96a7c630f",
         "targets": [
           "common",
           "msm-kernel"

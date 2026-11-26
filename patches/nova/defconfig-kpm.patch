@@ -1,7 +1,15 @@
 diff --git a/arch/arm64/configs/gki_defconfig b/arch/arm64/configs/gki_defconfig
 --- a/arch/arm64/configs/gki_defconfig
 +++ b/arch/arm64/configs/gki_defconfig
-@@ -103,7 +103,6 @@
+@@ -48,7 +48,6 @@
+ CONFIG_EXPERT=y
+ # CONFIG_SYSFS_SYSCALL is not set
+ # CONFIG_FHANDLE is not set
+-CONFIG_KALLSYMS_ALL=y
+ # CONFIG_RSEQ is not set
+ CONFIG_PROFILING=y
+ CONFIG_ARCH_SUNXI=y
+@@ -103,7 +102,6 @@
  CONFIG_MODVERSIONS=y
  CONFIG_MODULE_SCMVERSION=y
  CONFIG_MODULE_SIG=y
