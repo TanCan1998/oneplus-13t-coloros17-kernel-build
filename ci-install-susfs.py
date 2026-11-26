@@ -99,14 +99,15 @@ for name, tree in TREES.items():
     print("源码门禁通过：", name, len(results[name]), "项", flush=True)
 (report / "source-checks.json").write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
 
-# 5. 两棵树都安装 KSU；Nova 的 kernel/ 与 uapi/ 整体复制。
+# 5. 两棵树都安装 KSU；Nova 的 kernel/ 整体复制（uapi 已在其 include/ 下）。
 for name, tree in TREES.items():
     dest = tree / "drivers/kernelsu"
     if dest.exists() or dest.is_symlink():
         raise RuntimeError("装配树意外已有 kernelsu：" + name)
     shutil.copytree(ksu / "kernel", dest)
-    shutil.copytree(ksu / "uapi", dest / "include/uapi")
     assert not (dest / "include/uapi").is_symlink()
+    if not (dest / "include/uapi/supercall.h").is_file():
+        raise RuntimeError("Nova uapi 头文件缺失：" + name)
     p = tree / "drivers/Makefile"
     text = p.read_text()
     if "obj-$(CONFIG_KSU) += kernelsu/" not in text:

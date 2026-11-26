@@ -211,15 +211,7 @@
         "kernel/supercall/internal.h": "8a26bd8b51b772f337ef3c323a2d2935c5b5f101a5a0156117ce8ebdfbc035dd",
         "kernel/supercall/perm.c": "c3cba624673058ea119fea8793ba8200c66c304c425828050f30dc55acb81b1e",
         "kernel/supercall/supercall.c": "95a9cf9d3eaf18ba3e861b42214c99b9bcf5b6e79a874462e1484aed6a97c650",
-        "kernel/supercall/supercall.h": "075ae0685182eb62bfbfb776d4989820005e09f8f6efc09ed04210aa14602b63",
-        "uapi/app_profile.h": "dffad173122bb7bb183a61b5c24269e3cb36e3d4f22598cd34c0130945bed615",
-        "uapi/extension.h": "de212dc887011c47a03794ab25341832a9fcfe6c0b7c3cb69a319be85381feb9",
-        "uapi/feature.h": "8a73a3fa6baa5c21d067e3b6be645519b87b70c29fe710b414dc64164eaaef9f",
-        "uapi/ksu.h": "19fbb0cec86dc2d93ad6eaea1197d3d8a3f488b74574daaf2d1e6a3e9e69ac36",
-        "uapi/manager.h": "81461705e4088490645051292255be1571e46ccac0448fab8b41b700e5180227",
-        "uapi/selinux.h": "2650c0dd0f9075b19035e311e2dbdcec520fa9971d24db4c950e1281e83c09cd",
-        "uapi/sulog.h": "a84726fb3e103f134b0900a0c41ece3d6ce72f89ba97ad2fc4365729f7c64a9c",
-        "uapi/supercall.h": "03528ca79a8f5d908c5c3e2796e9ac9de04d9b3565207df17f1cadda7634c216"
+        "kernel/supercall/supercall.h": "075ae0685182eb62bfbfb776d4989820005e09f8f6efc09ed04210aa14602b63"
       }
     },
     "susfs": {
