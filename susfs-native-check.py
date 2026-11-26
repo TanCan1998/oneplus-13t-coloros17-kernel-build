@@ -41,6 +41,14 @@ def check(common, ksu, lock, common_key="common"):
         checks.append(message)
     def read(tree, rel):
         return (tree / rel).read_text(encoding="utf-8")
+    # reboot.c 里引用 KSU 魔数时不能带符号名：reboot.c 不包含 KSU 的 uapi 头。
+    reboot_c = read(common, "kernel/reboot.c")
+    require("ksu_handle_sys_reboot(magic1, magic2, cmd, &arg)" in reboot_c,
+            "内核 reboot 钩子转交 Nova 的 SUSFS 命令分发")
+    require("KSU_INSTALL_MAGIC1" not in reboot_c,
+            "reboot.c 不得引用 KSU_INSTALL_MAGIC1 符号（该头未包含，会编译失败）")
+    require("0xDEADBEEF" in reboot_c, "reboot.c 以字面量比较 KSU 安装魔数")
+
     for name, tree, paths in [("ksu", ksu, PRESERVE_KSU), (common_key, common, PRESERVE_COMMON)]:
         for rel in paths:
             expected = lock["sources"][name]["files"][rel]

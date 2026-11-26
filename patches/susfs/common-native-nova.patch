@@ -4075,7 +4075,7 @@ diff --git a/kernel/reboot.c b/kernel/reboot.c
  /*
   * Reboot system call: for obvious reasons only root may call it,
   * and even root needs to set up some magic numbers in the registers
-@@ -707,6 +710,20 @@
+@@ -707,6 +710,22 @@
  	struct pid_namespace *pid_ns = task_active_pid_ns(current);
  	char buffer[256];
  	int ret = 0;
@@ -4087,7 +4087,9 @@ diff --git a/kernel/reboot.c b/kernel/reboot.c
 +	 * 会被拦成 -EINVAL，设备无法重启。仅在 magic1 命中 KSU 安装魔数时
 +	 * 交给内核侧处理，其余情况继续走原生重启流程。
 +	 */
-+	if (magic1 == KSU_INSTALL_MAGIC1) {
++	/* KSU_INSTALL_MAGIC1 = 0xDEADBEEF，见 kernel/include/uapi/supercall.h；
++	 * reboot.c 不包含该头，直接写字面量以免引入新的 include 依赖。 */
++	if (magic1 == 0xDEADBEEF) {
 +		ret = ksu_handle_sys_reboot(magic1, magic2, cmd, &arg);
 +		if (ret >= 0)
 +			return ret;
