@@ -60,3 +60,15 @@
  }
  
  #define MAX_ARG_STRINGS 0x7FFFFFFF
+diff --git a/kernel/Kconfig b/kernel/Kconfig
+--- a/kernel/Kconfig
++++ b/kernel/Kconfig
+@@ -25,7 +25,7 @@
+ config KPM
+     bool "Enable SukiSU KPM"
+     depends on KSU && 64BIT
+-    default n
++    default y
+     help
+       Enabling this option will activate the KPM feature of SukiSU.
+       This option is suitable for scenarios where you need to force KPM to be enabled.

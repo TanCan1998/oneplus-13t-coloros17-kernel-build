@@ -299,9 +299,10 @@
           "kernel/include/uapi/feature.h",
           "kernel/ksu_main.c",
           "kernel/policy/feature.c",
-          "kernel/runtime/ksud.c"
+          "kernel/runtime/ksud.c",
+          "kernel/Kconfig"
         ],
-        "sha256": "fbd278a4e288f594805723b0c4e044fd3e670b906442c6bfb0951e7ba48cad2e"
+        "sha256": "2f66c9dee73ab51da908511612b8e070ef19d084fda01de38ad4080951a8e0f6"
       }
     },
     "excluded_upstream_common_files": [

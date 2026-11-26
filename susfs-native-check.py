@@ -79,6 +79,8 @@ def check(common, ksu, lock, common_key="common"):
     # ---- 本次启用的三项扩展 ----
     kconfig = read(ksu, "kernel/Kconfig")
     require(re.search(r"^config KPM$", kconfig, re.M) is not None, "KPM 配置项存在")
+    require(re.search(r"^config KPM\n(?:.*\n)*?\s+default y", kconfig, re.M) is not None,
+            "KPM 默认 y（不改 defconfig，避免 Klean savedefconfig 校验失败）")
     require(re.search(r"^config KSU_SUSFS$", kconfig, re.M) is not None, "SUSFS 配置项存在")
     compat = read(ksu, "kernel/kernel_compat.h")
     require("define KSU_CAN_USE_KPM" in compat, "6.6 内核满足 KPM 编译条件")

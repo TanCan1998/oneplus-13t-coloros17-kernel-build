@@ -38,9 +38,6 @@ shutil.copy2(HERE / "susfs-native.lock.json", report / "inputs.lock.json")
 
 TREES = {"common": platform / "common", "msm-kernel": platform / "msm-kernel"}
 
-# defconfig 追加项：KPM 默认 n，必须显式开启；AVC 依赖的 KPROBES 等已默认 y。
-EXTRA_CONFIGS = ["CONFIG_KPM=y"]
-
 common_patch = HERE / lock["adaptation"]["patches"]["common"]["path"]
 if helpers.sha256(common_patch) != lock["adaptation"]["patches"]["common"]["sha256"]:
     raise RuntimeError("common 补丁哈希不符")
@@ -145,15 +142,14 @@ for name, tree in TREES.items():
             raise RuntimeError("drivers/Kconfig 缺少菜单尾部：" + name)
         p.write_text(text[:index] + '\nsource "drivers/kernelsu/Kconfig"\n' + text[index:])
     # 默认 y 的 KSU/SUSFS 不写入 defconfig；仅移除会破坏 WiFi 的导出保护。
-    # CONFIG_KPM 默认 n，必须显式写入才会编译 KPM 子系统。
+    # KPM 由 patches/nova/ksu-avc-kpm.patch 把 Kconfig 默认值改为 y，
+    # 不再向 defconfig 追加 CONFIG_KPM=y：Klean 的配置门禁要求
+    # savedefconfig 与 gki_defconfig 完全一致，手工追加会直接失败。
     p = tree / "arch/arm64/configs/gki_defconfig"
     lines = p.read_text().splitlines()
     lines = [l for l in lines if l not in ["CONFIG_MODULE_SIG_PROTECT=y", "# CONFIG_MODULE_SIG_PROTECT is not set"]]
     if any("CONFIG_KSU" in l for l in lines):
         raise RuntimeError("原始 defconfig 意外含 KSU 项：" + name)
-    for entry in EXTRA_CONFIGS:
-        if entry not in lines:
-            lines.append(entry)
     p.write_text("\n".join(lines) + "\n")
     shutil.copy2(p, report / (name + "-gki_defconfig"))
     print("KSU 安装完成：", name, flush=True)
