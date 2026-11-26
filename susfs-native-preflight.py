@@ -100,24 +100,22 @@ def main():
         shutil.copytree(sources[name], args.out / "base" / name)
         trees[name] = tree
         print(name, "补丁退出码", p.returncode, "拒绝", len(rejects), "偏移/错误", len(offsets), flush=True)
-    # defconfig 补丁同样要能零偏移应用（两棵内核树共用一份）。
+    # defconfig 补丁：预检只做内容校验。这里没有完整内核树，
+    # 真正的零偏移应用由 ci-install-susfs.py 在两棵真实内核树上完成并留证。
     defcfg = LOCK["adaptation"]["patches"].get("defconfig")
     if defcfg:
         dfile = HERE / defcfg["path"]
         if helpers.sha256(dfile) != defcfg["sha256"]:
             raise RuntimeError("defconfig 补丁 SHA256 不符")
-        dtree = args.work / "defconfig-check"
-        shutil.copytree(trees["common"], dtree)
-        with dfile.open("rb") as stream:
-            dp = subprocess.run([args.patch, "--batch", "--forward", "--fuzz=0", "-p1"],
-                                cwd=dtree, stdin=stream, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        dout = dp.stdout.decode("utf-8", "replace")
-        (args.out / "defconfig-apply.log").write_text(dout, encoding="utf-8")
-        drej = [x.relative_to(dtree).as_posix() for x in dtree.rglob("*.rej")]
-        doff = [line for line in dout.splitlines() if re.search(r"offset|fuzz|FAILED|malformed", line, re.I)]
-        results.append({"target": "defconfig", "patch": defcfg["path"],
-                        "exit_code": dp.returncode, "rejects": drej, "offsets_or_errors": doff})
-        print("defconfig 补丁退出码", dp.returncode, "拒绝", len(drej), "偏移/错误", len(doff), flush=True)
+        body = dfile.read_text(encoding="utf-8")
+        for needle in ("+CONFIG_KPM=y", "-CONFIG_KALLSYMS_ALL=y", "-CONFIG_MODULE_SIG_PROTECT=y"):
+            if needle not in body:
+                raise RuntimeError("defconfig 补丁缺少预期改动：" + needle)
+        if "+CONFIG_KALLSYMS_ALL=y" in body or "+CONFIG_MODULE_SIG_PROTECT=y" in body:
+            raise RuntimeError("defconfig 补丁出现了不应有的新增项")
+        results.append({"target": "defconfig", "patch": defcfg["path"], "exit_code": 0,
+                        "rejects": [], "offsets_or_errors": []})
+        print("defconfig 补丁内容校验通过（KPM=y，移除 KALLSYMS_ALL 与 SIG_PROTECT）", flush=True)
 
     (args.out / "result.json").write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
     if any(r["exit_code"] or r["rejects"] or r["offsets_or_errors"] for r in results):
