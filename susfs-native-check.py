@@ -92,11 +92,11 @@ def check(common, ksu, lock, common_key="common"):
             "extension.c 的强制位图已改名为 extension_*，避免与 feature.c 同名冲突")
     require(re.search(r"(?<!extension_)forced_mask", ext_src) is None,
             "extension.c 不得再引用裸 forced_mask")
+
+    kconfig = read(ksu, "kernel/Kconfig")
     # 内核侧未实现 priority uid filter，Kconfig 默认必须是 n。
     require(re.search(r"^config KSU_SUSFS_PRIORITY_UID_FILTER\n(?:.*\n)*?\tdefault n", kconfig, re.M) is not None,
             "PRIORITY_UID_FILTER 默认 n（内核侧未实现对应 SUSFS 命令）")
-
-    kconfig = read(ksu, "kernel/Kconfig")
     require(re.search(r"^config KPM$", kconfig, re.M) is not None, "KPM 配置项存在")
     require(re.search(r"^config KPM\n(?:.*\n)*?\s+default y", kconfig, re.M) is not None,
             "KPM 默认 y（不改 defconfig，避免 Klean savedefconfig 校验失败）")
