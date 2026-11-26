@@ -108,11 +108,11 @@ def main():
         if helpers.sha256(dfile) != defcfg["sha256"]:
             raise RuntimeError("defconfig 补丁 SHA256 不符")
         body = dfile.read_text(encoding="utf-8")
-        for needle in ("+CONFIG_KPM=y", "-CONFIG_MODULE_SIG_PROTECT=y"):
+        for needle in ("-CONFIG_MODULE_SIG_PROTECT=y",):
             if needle not in body:
                 raise RuntimeError("defconfig 补丁缺少预期改动：" + needle)
-        if "-CONFIG_KALLSYMS_ALL=y" in body:
-            raise RuntimeError("defconfig 补丁不应移除 KALLSYMS_ALL（KPM 会 select 它）")
+        if "-CONFIG_KALLSYMS_ALL=y" in body or "-CONFIG_KSU" in body:
+            raise RuntimeError("defconfig 补丁不应移除 KALLSYMS_ALL / KSU 项")
         if "+CONFIG_MODULE_SIG_PROTECT=y" in body:
             raise RuntimeError("defconfig 补丁不应重新开启导出保护")
         results.append({"target": "defconfig", "patch": defcfg["path"], "exit_code": 0,

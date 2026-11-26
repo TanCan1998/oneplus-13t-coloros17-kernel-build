@@ -24,5 +24,9 @@ for name, path in targets.items():
         raise RuntimeError(name + " 未满足配置：" + ", ".join(missing))
     if "CONFIG_MODULE_SIG_PROTECT=y" in lines:
         raise RuntimeError(name + " 的导出保护仍开启")
+    # 诊断：KPM 在 KConfig 里 depends on KSU && 64BIT，任一为 n 时该行会被丢弃。
+    diag = {k: ("CONFIG_" + k + "=y" in lines) for k in
+            ("KSU", "64BIT", "KPM", "KALLSYMS", "KALLSYMS_ALL", "KPROBES", "THREAD_INFO_IN_TASK")}
+    print(name, "关键符号:", diag, flush=True)
     shutil.copy2(path, "/mnt/work/config-" + name + ".txt")
     print(name, "配置门禁通过：", len(required), "项为 y，MODULE_SIG_PROTECT 未开启", flush=True)

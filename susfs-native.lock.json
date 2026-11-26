@@ -302,11 +302,11 @@
           "kernel/runtime/ksud.c",
           "kernel/Kconfig"
         ],
-        "sha256": "571c46d259aa63834ade4a9fdfe1379cf434c7810a9c60eabdc3007bd4927656"
+        "sha256": "2752cb9a4c29157114f71cb0f3ce168f0cefdeaefe9409c24237f0413841aab5"
       },
       "defconfig": {
         "path": "patches/nova/defconfig-kpm.patch",
-        "sha256": "1dc6688807566a996c5b0ab568cd35b183dd5fd22834e501c68df5545b1ba145",
+        "sha256": "cf6133f75cdbed470c603ac24b8dca969531d0b3f9f7ce1672674cbb85a17ecd",
         "targets": [
           "common",
           "msm-kernel"

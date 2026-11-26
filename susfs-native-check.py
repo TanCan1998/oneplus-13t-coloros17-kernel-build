@@ -107,8 +107,8 @@ def check(common, ksu, lock, common_key="common"):
             "AVC 伪装在 boot_completed 后安装 kprobe")
 
     # ---- 内核侧原生接线 ----
-    require("depends on KSU && 64BIT" in kconfig,
-            "Kconfig 依赖语法与 Nova 一致（KPM 需要 64 位）")
+    require("depends on 64BIT" in kconfig and "depends on KSU && 64BIT" not in kconfig,
+            "KPM 只依赖 64BIT，避免 common 配置里 CONFIG_KSU 未定义时整项不可见")
     stat = read(common, "fs/stat.c")
     require(not any(t in stat for t in ["ksu_handle_stat(", "ksu_handle_vfs_fstat(", "__ksu_is_allow_uid_for_current"]),
             "保留 SUS_KSTAT、剔除不兼容的 root stat hook")

@@ -164,8 +164,8 @@ for name, tree in TREES.items():
     #   * CONFIG_MODULE_SIG_PROTECT=y 移除，否则 vendor 模块整链加载失败。
     p = tree / "arch/arm64/configs/gki_defconfig"
     lines = p.read_text().splitlines()
-    if "CONFIG_KPM=y" not in lines:
-        raise RuntimeError("defconfig 缺少 CONFIG_KPM=y：" + name)
+    if "CONFIG_KPM=y" in lines:
+        raise RuntimeError("defconfig 不应写 CONFIG_KPM（由 Kconfig 默认 y 提供）：" + name)
     if "CONFIG_KALLSYMS_ALL=y" not in lines:
         raise RuntimeError("defconfig 缺少 CONFIG_KALLSYMS_ALL=y：" + name)
     if "CONFIG_MODULE_SIG_PROTECT=y" in lines:
