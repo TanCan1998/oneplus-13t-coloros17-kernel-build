@@ -9,7 +9,8 @@ targets = {
     "common": platform / "bazel-bin/common/kernel_aarch64_config/out_dir/.config",
     "msm-kernel": platform / "bazel-bin/msm-kernel/sun_perf_config/out_dir/.config",
 }
-required = ["KSU", "KSU_MANUAL_SU", "KSU_SUSFS", "KSU_SUSFS_SUS_PATH", "KSU_SUSFS_SUS_MOUNT",
+# Nova builtin 的 Kconfig 没有 KSU_MANUAL_SU（Ultra 独有），不列入。
+required = ["KSU", "KSU_SUSFS", "KSU_SUSFS_SUS_PATH", "KSU_SUSFS_SUS_MOUNT",
     "KSU_SUSFS_SUS_KSTAT", "KSU_SUSFS_SPOOF_UNAME", "KSU_SUSFS_ENABLE_LOG",
     "KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS", "KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG",
     "KSU_SUSFS_OPEN_REDIRECT", "KSU_SUSFS_SUS_MAP", "KPROBES", "THREAD_INFO_IN_TASK", "64BIT",
