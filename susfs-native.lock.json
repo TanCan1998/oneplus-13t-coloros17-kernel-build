@@ -67,8 +67,6 @@
         "kernel/extension/version_spoof.h": "17a0c1ac79903315ee93083502c2b0224db9beb44fc08f0d5a3740658d587aa3",
         "kernel/feature/adb_root.c": "cfaa451a999aa8a061e579304a1b0cf82488331bce38e54f8ce94699fb669a9e",
         "kernel/feature/adb_root.h": "c6d16063b615a45cf63bb5ea4e616c943878f7e03136e464593e7383e8135f6e",
-        "kernel/feature/avc_spoof.c": "e5ea56d898232851d2949bd33d7924001befee176e8161f28591874af6af11ee",
-        "kernel/feature/avc_spoof.h": "72504f30f70e8ce8d3a246e29a26ce78375c8d152db241694a336d836e4e89e0",
         "kernel/feature/kernel_umount.c": "5a8dbb3b43717f202d32518e8bba02fb8c67ce30f7a1ba2a54cc928dddfef2eb",
         "kernel/feature/kernel_umount.h": "f8797996d412dc9cc2ff131b12c21e8d0df047b3f2399b54bb24560793c5e18a",
         "kernel/feature/mount_hide.c": "148bf9ccf3d64b4545dd30dffb686769295b35a6436d3b8b001af42711147885",
@@ -342,6 +340,16 @@
       "previous_failure": "run 39532454585：msm-kernel vmlinux 链接时 17 个 susfs_* 符号未定义",
       "preserve_files_source": "raw.githubusercontent.com 固定提交取回并比对"
     },
-    "upstream": "SukiSU-Nova/SukiSU-Nova@4bec532dd447e2852aa8932afa768255350c103a"
+    "upstream": "SukiSU-Nova/SukiSU-Nova@4bec532dd447e2852aa8932afa768255350c103a",
+    "additions": {
+      "kernel/feature/avc_spoof.c": {
+        "source": "patches/nova/avc_spoof.c",
+        "sha256": "e5ea56d898232851d2949bd33d7924001befee176e8161f28591874af6af11ee"
+      },
+      "kernel/feature/avc_spoof.h": {
+        "source": "patches/nova/avc_spoof.h",
+        "sha256": "72504f30f70e8ce8d3a246e29a26ce78375c8d152db241694a336d836e4e89e0"
+      }
+    }
   }
 }

@@ -56,6 +56,17 @@ def main():
                 raise RuntimeError("固定源码内容不符：" + name + "/" + rel)
         sources[name] = base
         print("固定源码校验通过：", name, len(spec["files"]), flush=True)
+    # 本仓库新增、上游归档里不存在的文件（如 AVC 日志伪装）。
+    additions = LOCK["adaptation"].get("additions", {})
+    for rel, item in additions.items():
+        src = HERE / item["source"]
+        if helpers.sha256(src) != item["sha256"]:
+            raise RuntimeError("新增文件哈希不符：" + rel)
+        dest = sources["ksu"] / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest)
+    if additions:
+        print("已并入本仓库新增文件：", len(additions), "个", flush=True)
     (args.out / "downloads.json").write_text(json.dumps(downloads, ensure_ascii=False, indent=2), encoding="utf-8")
     results = []
     trees = {}

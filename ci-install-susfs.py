@@ -80,7 +80,18 @@ helpers.extract_selected(archive, ksu, source["files"])
 for rel, expected in source["files"].items():
     if helpers.sha256(ksu / rel) != expected:
         raise RuntimeError("固定 SukiSU 源码不符：" + rel)
-print("SukiSU Nova 源码校验通过：", len(source["files"]), "个文件", flush=True)
+
+# 本仓库新增、上游归档里不存在的文件（如 AVC 日志伪装）。
+for rel, item in lock["adaptation"].get("additions", {}).items():
+    src = HERE / item["source"]
+    if helpers.sha256(src) != item["sha256"]:
+        raise RuntimeError("新增文件哈希不符：" + rel)
+    dest = ksu / rel
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src, dest)
+
+print("SukiSU Nova 源码校验通过：", len(source["files"]), "个文件",
+      "(+%d 新增)" % len(lock["adaptation"].get("additions", {})), flush=True)
 
 # 两项扩展的源码证据必须存在，否则说明归档或锁定文件被改坏。
 for rel, needle in [
