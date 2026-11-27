@@ -4,8 +4,8 @@
 只读 System.map，不做任何写入。符号名以 Nova builtin 源码为准：
   * KPM：extension/kpm/kpm.c 的唯一外部入口 do_kpm()，以及 kpm.c 的扩展胶水；
   * 版本信息自定义：extension/version_spoof.c 的 io/wipe 入口；
-  * AVC 日志伪装：feature/avc_spoof.c 的 init/late_init/enable，以及被 probe 的
-    slow_avc_audit（必须是可解析符号，否则 register_kprobe 会失败）。
+  * AVC 日志伪装：builtin-new 有两套入口（kprobe 与 arm64 redirect），
+    统一经过 ksu_avc_spoof_rewrite_tsid，因此以该符号为准。
 
 任何一项缺失都会失败——这些功能是本次构建的目的，不能静默丢失。
 """
@@ -24,7 +24,7 @@ REQUIRED = [
     ("版本信息自定义", ["ksu_extension_version_spoof_io"], True),
     ("版本信息自定义（清空）", ["ksu_extension_version_spoof_wipe"], True),
     ("AVC 日志伪装", ["ksu_avc_spoof_init", "ksu_avc_spoof_late_init"], True),
-    ("AVC kprobe 目标符号", ["slow_avc_audit"], True),
+    ("AVC 改写入口", ["ksu_avc_spoof_rewrite_tsid"], True),
 ]
 
 def main() -> int:

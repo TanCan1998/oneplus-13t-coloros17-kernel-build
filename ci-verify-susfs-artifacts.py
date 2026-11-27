@@ -3,12 +3,14 @@
 import hashlib
 import json
 import os
+import pathlib
 from pathlib import Path
 import re
 import shutil
 import struct
 
 root = Path(os.environ["TREE_ROOT"])
+LOCK = json.loads((pathlib.Path(__file__).resolve().parent / "susfs-native.lock.json").read_text(encoding="utf-8"))
 dist = root / "kernel_platform/out/msm-kernel-sun-perf/dist"
 out = Path("/mnt/work/susfs-build-verification")
 out.mkdir(exist_ok=False)
@@ -28,10 +30,12 @@ ksu = re.findall(r"^[0-9a-fA-F]+\s+\w\s+((?:ksu_|kernelsu)\S*)", symbols, re.M)
 susfs = re.findall(r"^[0-9a-fA-F]+\s+\w\s+((?:susfs_|ksu_susfs_)\S*)", symbols, re.M)
 if len(ksu) < 40 or len(susfs) < 10:
     raise RuntimeError("真实 KSU/SUSFS 链接符号不足：" + str((len(ksu), len(susfs))))
-for name in ["susfs_add_sus_path", "ksu_susfs_handle_reboot"]:
+# v2.4.0 的 SUSFS 控制入口是 ksu_handle_sys_reboot（v2.3.0 用的是
+# ksu_susfs_handle_reboot），管理器包名为 com.sukisu.nova。
+for name in ["susfs_add_sus_path", "ksu_handle_sys_reboot"]:
     if not re.search(r"\s" + name + r"(?:\.[^\s]+)?$", symbols, re.M):
         raise RuntimeError("未找到关键原生控制函数：" + name)
-for token in [b"hook_manager", b"com.sukisu.ultra", b"native-susfs-7ea0dd2b", b"susfs is initialized! version:"]:
+for token in [b"com.sukisu.nova", b"susfs is initialized! version:"]:
     if token not in image:
         raise RuntimeError("Image 缺少运行时证据：" + token.decode())
 for token in [b"exports protected symbol", b"gki_is_module_protected_export"]:
@@ -40,8 +44,8 @@ for token in [b"exports protected symbol", b"gki_is_module_protected_export"]:
 record = {
     "workflow_commit": os.environ.get("GITHUB_SHA"),
     "baseline_run": "39450775101",
-    "ksu_commit": "7ea0dd2b09bfc60e6b51a6a93fc9f49b349a9b2a",
-    "susfs_commit": "3f6aae536724af0df3dfa15f932034d14a5dbc5c",
+    "ksu_commit": LOCK["sources"]["ksu"]["commit"],
+    "susfs_commit": LOCK["sources"]["susfs"]["commit"],
     "ksu_symbols": len(ksu), "susfs_symbols": len(susfs),
     "header_version": header_version, "ramdisk_size": ramdisk_size, "kernel_size": kernel_size,
     "files": {},
