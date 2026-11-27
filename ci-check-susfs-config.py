@@ -25,6 +25,16 @@ for name, path in targets.items():
         raise RuntimeError(name + " 未满足配置：" + ", ".join(missing))
     if "CONFIG_MODULE_SIG_PROTECT=y" in lines:
         raise RuntimeError(name + " 的导出保护仍开启")
+    # 扩展功能熔断：这些关系一旦被破坏，编译能过但功能不可用，
+    # 或运行期直接失效；放在编译前 5 秒判死，避免白跑一小时。
+    #   KPM 在 nova-new/kernel/Kconfig 里 select KALLSYMS/KALLSYMS_ALL，
+    #   运行期用 find_kernel_symbol_exact("__arm64_sys_truncate") 找入口，
+    #   而 CFI 会把该符号改名为 .cfi_jt，故 CFI 必须为 y。
+    must = ["CONFIG_KALLSYMS=y", "CONFIG_KALLSYMS_ALL=y", "CONFIG_CFI_CLANG=y",
+            "CONFIG_KPM=y", "CONFIG_KSU_SUSFS=y"]
+    lost = [k for k in must if k not in lines]
+    if lost:
+        raise RuntimeError(name + " 扩展依赖被破坏：" + ", ".join(lost))
     # 诊断：KPM 在 KConfig 里 depends on KSU && 64BIT，任一为 n 时该行会被丢弃。
     diag = {k: ("CONFIG_" + k + "=y" in lines) for k in
             ("KSU", "64BIT", "KPM", "KALLSYMS", "KALLSYMS_ALL", "KPROBES", "THREAD_INFO_IN_TASK")}

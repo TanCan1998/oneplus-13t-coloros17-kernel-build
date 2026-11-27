@@ -18,41 +18,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  source-gate:
-    name: 固定源码与补丁门禁
-    runs-on: ubuntu-24.04
-    timeout-minutes: 25
-    steps:
-      - name: 检出固定工作流提交
-        uses: actions/checkout@v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: 准备一次性源码工作区
-        run: |
-          set -euo pipefail
-          sudo mkdir -p /mnt/work
-          sudo chown "$(id -u):$(id -g)" /mnt/work
-          python3 --version
-          patch --version | head -1
-
-      - name: 校验固定源码与原生适配
-        run: |
-          set -euo pipefail
-          python3 susfs-native-preflight.py --work /mnt/work/susfs-native-preflight --out /mnt/work/susfs-source-report
-
-      - name: 保留完整源码门禁证据
-        if: always()
-        uses: actions/upload-artifact@v7.0.2
-        with:
-          name: susfs-source-preflight
-          path: /mnt/work/susfs-source-report/
-          if-no-files-found: error
-          retention-days: 14
-
   build:
     name: 双配置门禁与原生 SUSFS 编译
-    needs: source-gate
     runs-on: ubuntu-24.04
     timeout-minutes: 350
     env:
@@ -65,6 +32,24 @@ jobs:
         uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
+
+      - name: 固定源码与补丁门禁
+        run: |
+          set -euo pipefail
+          sudo mkdir -p /mnt/work
+          sudo chown "$(id -u):$(id -g)" /mnt/work
+          python3 --version
+          patch --version | head -1
+          python3 susfs-native-preflight.py --work /mnt/work/susfs-native-preflight --out /mnt/work/susfs-source-report
+
+      - name: 保留源码门禁证据
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: susfs-source-preflight
+          path: /mnt/work/susfs-source-report/
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: 准备一次性云端构建磁盘
         run: |
@@ -109,6 +94,8 @@ jobs:
           cd "$TREE_ROOT"
           export PATH="$PWD/kernel_platform/prebuilts/build-tools/path/linux-x86:$PATH"
           export RECOMPILE_EXT_MODULE=0
+          # 跳过 sun16k_perf_dist：dist16k 无消费者，省约 25-40 分钟
+          export KSU_SKIP_16K=1
           mkdir -p out/target/product/sun
           bash kernel_platform/oplus/build/oplus_build_kernel.sh sun perf 2>&1 | tee /mnt/work/build.log
           # 官方脚本即使 Bazel 失败也可能返回 0，必须显式核对 dist 产物。
@@ -140,6 +127,9 @@ jobs:
             /mnt/work/official-13t/kernel_platform/out/msm-kernel-sun-perf/dist/Image
             /mnt/work/official-13t/kernel_platform/out/msm-kernel-sun-perf/dist/System.map
             /mnt/work/official-13t/kernel_platform/out/msm-kernel-sun-perf/dist/SHA256SUMS.txt
+            /mnt/work/official-13t/kernel_platform/out/msm-kernel-sun-perf/dist/Module.symvers
+            /mnt/work/official-13t/kernel_platform/out/msm-kernel-sun-perf/dist/vmlinux.symvers
+            /mnt/work/official-13t/kernel_platform/out/msm-kernel-sun-perf/dist/modules.builtin
             /mnt/work/config-common.txt
             /mnt/work/config-msm-kernel.txt
             /mnt/work/assemble.log

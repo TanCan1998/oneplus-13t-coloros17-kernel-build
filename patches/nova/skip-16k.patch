@@ -1,0 +1,13 @@
+diff --git a/msm-kernel/build_with_bazel.py b/msm-kernel/build_with_bazel.py
+--- a/msm-kernel/build_with_bazel.py
++++ b/msm-kernel/build_with_bazel.py
+@@ -185,6 +185,9 @@
+                 sys.exit(1)
+ 
+             for label in label_list:
++                if os.environ.get("KSU_SKIP_16K") == "1" and "16k_" in label:
++                    logging.info("Skip 16k target (KSU_SKIP_16K=1): %s", label)
++                    continue
+                 if any((skip_re.match(label) for skip_re in skip_list_re)):
+                     continue
+ 

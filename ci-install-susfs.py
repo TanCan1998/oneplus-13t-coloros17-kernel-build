@@ -202,5 +202,26 @@ for name, tree in TREES.items():
         raise RuntimeError("defconfig 仍开启导出保护：" + name)
     shutil.copy2(p, report / (name + "-gki_defconfig"))
     print("KSU 安装完成：", name, flush=True)
+# 6. 跳过 16k 变体：dist16k 全程无人读取（工作流只取 dist/），
+#    而 16K 主内核 action 实测跑到 3638 s，与 4K 抢同一个 4 vCPU。
+#    改动仅作用于 build_with_bazel.py 的目标枚举，不碰任何内核配置或 KMP/KPM。
+skip16k = lock["adaptation"]["patches"].get("skip16k")
+if skip16k:
+    sp = HERE / skip16k["path"]
+    if helpers.sha256(sp) != skip16k["sha256"]:
+        raise RuntimeError("skip16k 补丁哈希不符")
+    bz = platform / "msm-kernel/build_with_bazel.py"
+    with sp.open("rb") as stream:
+        proc = subprocess.run(["patch", "--batch", "--forward", "--fuzz=0", "-p1"],
+                              cwd=platform, stdin=stream,
+                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    out = proc.stdout.decode("utf-8", "replace")
+    (report / "skip16k-apply.log").write_text(out, encoding="utf-8")
+    if proc.returncode or re.search(r"fuzz|FAILED|malformed", out, re.I):
+        raise RuntimeError("skip16k 补丁应用失败：" + out[-300:])
+    if "KSU_SKIP_16K" not in bz.read_text(encoding="utf-8"):
+        raise RuntimeError("skip16k 未生效")
+    print("16k 跳过补丁已安装（运行期由 KSU_SKIP_16K=1 控制）", flush=True)
+
 shutil.copytree(ksu, report / "patched-ksu")
 print("装配完成：两棵树均已打原生补丁并安装 SukiSU Nova（KPM/版本伪装/AVC 伪装已启用）", flush=True)

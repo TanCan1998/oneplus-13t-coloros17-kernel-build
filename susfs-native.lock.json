@@ -281,6 +281,11 @@
           "common",
           "msm-kernel"
         ]
+      },
+      "skip16k": {
+        "path": "patches/nova/skip-16k.patch",
+        "sha256": "9c1e58ef6a5351dc54c4fa230eadff6d62904d059d8b950317d71aea429e2b17",
+        "note": "KSU_SKIP_16K=1 时跳过 sun16k_perf_dist；dist16k 无任何消费者"
       }
     },
     "excluded_upstream_common_files": [
