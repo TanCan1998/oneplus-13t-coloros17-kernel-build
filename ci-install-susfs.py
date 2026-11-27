@@ -61,8 +61,10 @@ for name, tree in TREES.items():
     output = p.stdout.decode("utf-8", "replace")
     (report / (name + "-common-apply.log")).write_text(output, encoding="utf-8")
     rejects = list(tree.rglob("*.rej"))
-    if p.returncode or rejects or re.search(r"offset|fuzz|FAILED|malformed", output, re.I):
-        raise RuntimeError("原生补丁未零拒绝/零偏移应用：" + name)
+    # offset 是 patch 自动搜索后的正常行号漂移（一加对 exec/SELinux 有定制行）；
+    # 只有 fuzz（模糊落位）、FAILED（拒绝）、malformed（补丁损坏）才算失败。
+    if p.returncode or rejects or re.search(r"fuzz|FAILED|malformed", output, re.I):
+        raise RuntimeError("原生补丁未零 fuzz/零拒绝应用：" + name)
     print("原生补丁应用成功：", name, flush=True)
 
 # 2b. defconfig：显式开启 KPM、移除被 select 的 KALLSYMS_ALL 与导出保护。
@@ -115,7 +117,7 @@ if ksu_patch.get("path"):
                               stdin=stream, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     out = proc.stdout.decode("utf-8", "replace")
     (report / "ksu-avc-apply.log").write_text(out, encoding="utf-8")
-    if proc.returncode or list(ksu.rglob("*.rej")) or re.search(r"offset|fuzz|FAILED|malformed", out, re.I):
+    if proc.returncode or list(ksu.rglob("*.rej")) or re.search(r"fuzz|FAILED|malformed", out, re.I):
         raise RuntimeError("KSU 侧补丁未零拒绝/零偏移应用：" + out[-400:])
 
 print("SukiSU Nova 源码校验通过：", len(source["files"]), "个文件",
