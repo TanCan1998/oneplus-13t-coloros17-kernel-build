@@ -2,10 +2,10 @@
 """在一次性官方装配树内安装固定版本的原生 SUSFS + SukiSU Nova（builtin 分支）。
 
 与 Ultra 版的差异：
-  * 上游源码换成 SukiSU-Nova/SukiSU-Nova 的 builtin 分支，目录含 kernel/ 与 uapi/；
+  * 上游源码换成 SukiSU-Nova/SukiSU-Nova 的 builtin-new 分支（自带 AVC/版本伪装）；
   * Nova 自带 SUSFS supercall 桥接，不再需要 KSU 侧源码补丁，改为整体复制；
   * 额外启用三项扩展：KPM（CONFIG_KPM=y）、版本信息自定义（内置）、
-    AVC 日志伪装（feature/avc_spoof.c，已随源码带入）；
+    AVC 日志伪装（builtin-new 自带 feature/avc_spoof.c）；
   * 装配后校验三项功能的源码证据，缺失即失败。
 
 boot.img 实际由 //msm-kernel:sun16k_perf_dist 产出，common 与 msm-kernel
@@ -123,7 +123,7 @@ print("SukiSU Nova 源码校验通过：", len(source["files"]), "个文件",
 
 # 两项扩展的源码证据必须存在，否则说明归档或锁定文件被改坏。
 for rel, needle in [
-    ("kernel/feature/avc_spoof.c", "slow_avc_audit"),
+    ("kernel/feature/avc_spoof.c", "ksu_avc_spoof_rewrite_tsid"),
     ("kernel/extension/version_spoof.c", "ksu_version_spoof_cmd"),
     ("kernel/extension/kpm/kpm.c", "kpm"),
 ]:

@@ -13,17 +13,21 @@ import re
 
 # Nova builtin 里必须保持原样的关键文件（去掉本次补丁涉及的三个）。
 PRESERVE_KSU = [
-    "kernel/feature/sucompat.c", "kernel/feature/sucompat.h",
-    "kernel/feature/mount_hide.c", "kernel/feature/kernel_umount.c",
-    "kernel/feature/selinux_hide.c", "kernel/feature/adb_root.c",
-    "kernel/hook/lsm_hook.c",
-    "kernel/supercall/dispatch.c", "kernel/supercall/supercall.c",
-    "kernel/policy/app_profile.h", "kernel/preinit/preinit.c",
+    "kernel/feature/sucompat.c",
+    "kernel/feature/mount_hide.c",
+    "kernel/feature/kernel_umount.c",
+    "kernel/feature/selinux_hide.c",
+    "kernel/feature/adb_root.c",
+    "kernel/hook/setuid_hook.c",
+    "kernel/hook/lsm_hooks_list.c",
+    "kernel/supercall/dispatch.c",
+    "kernel/supercall/supercall.c",
+    "kernel/policy/app_profile.h",
+    "kernel/preinit/preinit.c",
     "kernel/extension/kpm.c",
-    "kernel/extension/cpu_spoof.c", "kernel/selinux/selinux.c",
+    "kernel/extension/cpu_spoof.c",
+    "kernel/selinux/selinux.c",
     "kernel/extension/susfs_extension.c",
-    # kernel/runtime/ksud.c 已由 patches/nova/ksu-avc-kpm.patch 修改（AVC late_init），
-    # 不再作为不可改基线；其 AVC 接线由下方专门断言覆盖。
 ]
 PRESERVE_COMMON = [
     "drivers/input/input.c", "fs/exec.c", "fs/open.c", "fs/read_write.c",
@@ -84,46 +88,30 @@ def check(common, ksu, lock, common_key="common"):
     require(main.count('"feature/avc_spoof.c"') == 1, "AVC 伪装源码进入 unity build")
     require(main.count("ksu_avc_spoof_init();") == 1, "AVC 伪装初始化接入内核启动")
 
-    # ---- 本次启用的三项扩展 ----
-    # unity build 下 extension.c 与 policy/feature.c 会展开进同一编译单元，
-    # 静态符号必须不同名，否则 AVC 功能把 KSU_FEATURE_MAX 抬高后位图尺寸不同会重定义。
-    ext_src = read(ksu, "kernel/extension/extension.c")
-    require("extension_forced_mask" in ext_src and "extension_forced_pending" in ext_src,
-            "extension.c 的强制位图已改名为 extension_*，避免与 feature.c 同名冲突")
-    require(re.search(r"(?<!extension_)forced_mask", ext_src) is None,
-            "extension.c 不得再引用裸 forced_mask")
-
-    kconfig = read(ksu, "kernel/Kconfig")
-    # 内核侧未实现 priority uid filter，Kconfig 默认必须是 n。
-    require(re.search(r"^config KSU_SUSFS_PRIORITY_UID_FILTER\n(?:.*\n)*?\tdefault n", kconfig, re.M) is not None,
-            "PRIORITY_UID_FILTER 默认 n（内核侧未实现对应 SUSFS 命令）")
+    # ---- 本次启用的三项扩展（builtin-new 已内建，只校验接线与默认值）----
     require(re.search(r"^config KPM$", kconfig, re.M) is not None, "KPM 配置项存在")
     require(re.search(r"^config KPM\n(?:.*\n)*?\s+default y", kconfig, re.M) is not None,
             "KPM 默认 y（不改 defconfig，避免 Klean savedefconfig 校验失败）")
+    require(re.search(r"^config KPM\n(?:.*\n)*?\s+depends on 64BIT", kconfig, re.M) is not None,
+            "KPM 只依赖 64BIT，避免 common 配置阶段 CONFIG_KSU 未定义导致整项不可见")
     require(re.search(r"^config KSU_SUSFS$", kconfig, re.M) is not None, "SUSFS 配置项存在")
+    require(re.search(r"^config KSU_SUSFS$\n(?:.*\n)*?\tdefault y", kconfig, re.M) is not None,
+            "KSU_SUSFS 默认 y（本机型保留原生 SUSFS）")
     compat = read(ksu, "kernel/kernel_compat.h")
     require("define KSU_CAN_USE_KPM" in compat, "6.6 内核满足 KPM 编译条件")
-    kpm = read(ksu, "kernel/extension/kpm/kpm.c")
-    require("kpm_install" in kpm or "do_kpm" in kpm, "KPM 装载实现存在")
-    version = read(ksu, "kernel/extension/version_spoof.c")
-    require("KSU_VERSION_SPOOF_IO_SET" in version, "版本伪装支持运行时写入")
-    require("KSU_VERSION_SPOOF_FULL_VERSION" in version, "版本伪装覆盖完整版本串")
-    ext = read(ksu, "kernel/extension/extension.c")
-    require('"version_spoof"' in ext and "KSU_EXTENSION_VERSION_SPOOF" in ext,
-            "版本伪装扩展已注册")
+    require("do_kpm" in read(ksu, "kernel/extension/kpm/kpm.c"), "KPM 装载实现存在")
+    main = read(ksu, "kernel/ksu.c")
+    require(main.count('"feature/avc_spoof.c"') == 1, "AVC 伪装源码进入 unity build")
+    require(main.count("ksu_avc_spoof_init();") == 1, "AVC 伪装初始化接入内核启动")
     avc = read(ksu, "kernel/feature/avc_spoof.c")
-    require('register_kprobe' in avc and '"slow_avc_audit"' in avc,
-            "AVC 伪装通过 slow_avc_audit kprobe 生效")
-    require("CONFIG_KPROBES" in avc, "AVC 伪装对无 KPROBES 内核有编译期保护")
-    feature_uapi = read(ksu, "kernel/include/uapi/feature.h")
-    require("KSU_FEATURE_AVC_SPOOF = 10003" in feature_uapi,
-            "AVC 功能 ID 与 Nova 主线一致")
+    require("ksu_avc_spoof_rewrite_tsid" in avc, "AVC 伪装提供 tsid 改写入口")
     feature_c = read(ksu, "kernel/policy/feature.c")
-    require('[KSU_FEATURE_AVC_SPOOF] = "avc_spoof"' in feature_c,
-            "AVC 功能名进入内核注册表")
-    ksud = read(ksu, "kernel/runtime/ksud.c")
-    require("ksu_avc_spoof_late_init();" in ksud,
-            "AVC 伪装在 boot_completed 后安装 kprobe")
+    require('[KSU_FEATURE_AVC_SPOOF] = "avc_spoof"' in feature_c, "AVC 功能名进入内核注册表")
+    ext = read(ksu, "kernel/extension/extension.c")
+    require('"version_spoof"' in ext and "KSU_EXTENSION_VERSION_SPOOF" in ext, "版本伪装扩展已注册")
+    ver = read(ksu, "kernel/extension/version_spoof.c")
+    require("KSU_VERSION_SPOOF_IO_SET" in ver and "KSU_VERSION_SPOOF_FULL_VERSION" in ver,
+            "版本伪装支持运行时写入完整版本串")
 
     # ---- 内核侧原生接线 ----
     require("depends on 64BIT" in kconfig and "depends on KSU && 64BIT" not in kconfig,

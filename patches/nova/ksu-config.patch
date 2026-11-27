@@ -1,0 +1,23 @@
+diff --git a/kernel/Kconfig b/kernel/Kconfig
+--- a/kernel/Kconfig
++++ b/kernel/Kconfig
+@@ -127,8 +127,8 @@
+ 
+ config KPM
+     bool "Enable SukiSU KPM"
+-    depends on KSU && 64BIT
+-    default n
++    depends on 64BIT
++    default y
+     help
+       Enabling this option will activate the KPM feature of SukiSU.
+       This option is suitable for scenarios where you need to force KPM to be enabled.
+@@ -144,7 +144,7 @@
+ 	bool "KernelSU addon - SUSFS"
+ 	depends on KSU = y
+ 	depends on ARM64
+-	default n
++	default y
+ 	help
+ 	  Patch and Enable SUSFS to kernel with KernelSU.
+ 	  When enabled, KSU uses SUSFS's inline hooks (patched into the kernel
