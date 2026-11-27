@@ -87,6 +87,28 @@ def main():
         if helpers.sha256(patch) != item["sha256"]:
             raise RuntimeError("适配补丁 SHA256 不符：" + name)
         shutil.copytree(sources[name], tree)
+        # 预检用的是精简源码模板：补丁里不在模板内的文件（v2.4.0 新增的
+        # block/ioprio.c、security/selinux/status.c 等）会在这里跳过，
+        # 由 ci-install-susfs.py 在完整装配树上做全量零失败应用并留证。
+        if name == "common":
+            wanted = set(LOCK["adaptation"]["patches"]["common"]["files"])
+            present = {p.relative_to(tree).as_posix() for p in tree.rglob("*") if p.is_file()}
+            skipped = sorted(wanted - present)
+            if skipped:
+                print("预检跳过模板外的文件:", ", ".join(skipped), flush=True)
+            filtered = Path(args.work / "common-filtered.patch")
+            keep, drop = [], 0
+            excluded = set(LOCK["adaptation"].get("excluded_upstream_common_files", []))
+            for seg in re.split(r"(?m)^(?=diff --git )", patch.read_text(encoding="utf-8")):
+                if not seg.strip():
+                    continue
+                m = re.match(r"diff --git a/(\S+) b/", seg)
+                if m and (m.group(1) not in present or m.group(1) in excluded):
+                    drop += 1
+                    continue
+                keep.append(seg)
+            filtered.write_text("".join(keep), encoding="utf-8")
+            patch = filtered
         with patch.open("rb") as stream:
             p = subprocess.run([args.patch, "--batch", "--forward", "--fuzz=0", "-p1"],
                 cwd=tree, stdin=stream, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
