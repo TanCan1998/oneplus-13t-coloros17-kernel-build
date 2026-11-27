@@ -187,10 +187,11 @@ for name, tree in TREES.items():
         if index < 0:
             raise RuntimeError("drivers/Kconfig 缺少菜单尾部：" + name)
         p.write_text(text[:index] + '\nsource "drivers/kernelsu/Kconfig"\n' + text[index:])
-    # defconfig 由 patches/nova/defconfig-kpm.patch 在第 2 步统一应用：
-    #   * CONFIG_KPM=y 显式写入（Klean 门禁要求 savedefconfig 与 defconfig 完全一致）；
-    #   * CONFIG_KALLSYMS_ALL=y 移除，因为 CONFIG_KPM select 了它；
-    #   * CONFIG_MODULE_SIG_PROTECT=y 移除，否则 vendor 模块整链加载失败。
+    # defconfig 由 patches/nova/defconfig-kpm.patch 在第 2b 步统一应用：
+    #   * CONFIG_KALLSYMS_ALL=y 移除：KPM 通过 KConfig default y + select 生效后，
+    #     该行会被判为非默认项，留着会让 Klean 的 savedefconfig 校验失败；
+    #   * CONFIG_MODULE_SIG_PROTECT=y 移除，否则 vendor 模块整链加载失败；
+    #   * CONFIG_KPM 不写入 defconfig，一律由 KConfig 的 default y 提供。
     p = tree / "arch/arm64/configs/gki_defconfig"
     lines = p.read_text().splitlines()
     if "CONFIG_KPM=y" in lines:
