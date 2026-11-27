@@ -53,6 +53,20 @@ for name, tree in TREES.items():
                 raise RuntimeError("目标树已存在 SUSFS 文件，拒绝覆盖：" + name + "/" + rel)
     print("基线源码核对通过：", name, flush=True)
 
+# 1b. 取 SUSFS 上游归档，供稍后复制核心文件。
+susfs_spec = lock["sources"]["susfs"]
+susfs_archive = Path("/mnt/work/susfs-upstream.tar.gz")
+susfs_url = "https://gh-proxy.org/https://github.com/" + susfs_spec["repo"] + "/archive/" + susfs_spec["commit"] + ".tar.gz"
+subprocess.run(["curl", "--fail", "--location", "--retry", "3", "--connect-timeout", "20",
+                "--max-time", "300", "--output", str(susfs_archive), susfs_url], check=True)
+archive_dir = Path("/mnt/work/susfs-upstream")
+archive_dir.mkdir(exist_ok=False)
+helpers.extract_selected(susfs_archive, archive_dir, susfs_spec["files"])
+for rel, expected in susfs_spec["files"].items():
+    if helpers.sha256(archive_dir / rel) != expected:
+        raise RuntimeError("SUSFS 上游文件不符：" + rel)
+print("SUSFS 上游文件校验通过：", len(susfs_spec["files"]), flush=True)
+
 # 2. 两棵树各自应用同一份原生补丁，要求零拒绝、零 fuzz、零偏移。
 for name, tree in TREES.items():
     with common_patch.open("rb") as stream:
@@ -66,6 +80,19 @@ for name, tree in TREES.items():
     if p.returncode or rejects or re.search(r"fuzz|FAILED|malformed", output, re.I):
         raise RuntimeError("原生补丁未零 fuzz/零拒绝应用：" + name)
     print("原生补丁应用成功：", name, flush=True)
+    # v2.4.0 把 SUSFS 核心拆成独立文件（不在补丁里），必须显式放入每棵树，
+    # 否则 msm-kernel 侧编译会报 'linux/susfs_def.h' 找不到。
+    for rel, src in [("fs/susfs.c", "kernel_patches/fs/susfs.c"),
+                     ("include/linux/susfs.h", "kernel_patches/include/linux/susfs.h"),
+                     ("include/linux/susfs_def.h", "kernel_patches/include/linux/susfs_def.h")]:
+        dest = tree / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(archive_dir / src, dest)
+    for rel in ("fs/susfs.c", "include/linux/susfs.h", "include/linux/susfs_def.h"):
+        f = tree / rel
+        if not f.is_file() or f.stat().st_size == 0:
+            raise RuntimeError("SUSFS 核心文件缺失：" + name + "/" + rel)
+    print("SUSFS 核心文件已放入并校验：", name, flush=True)
 
 # 2b. defconfig：显式开启 KPM、移除被 select 的 KALLSYMS_ALL 与导出保护。
 defcfg = lock["adaptation"]["patches"]["defconfig"]
