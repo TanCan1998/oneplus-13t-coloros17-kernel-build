@@ -93,7 +93,9 @@ def main():
         output = p.stdout.decode("utf-8", "replace")
         (args.out / (name + "-apply.log")).write_text(output, encoding="utf-8")
         rejects = [p.relative_to(tree).as_posix() for p in tree.rglob("*.rej")]
-        offsets = [line for line in output.splitlines() if re.search(r"offset|fuzz|FAILED|malformed", line, re.I)]
+        # offset 是正常的行号漂移（上游归档与一加定制行的差异），内容仍精确匹配；
+        # 只有 fuzz（模糊匹配）、FAILED（拒绝）、malformed（补丁损坏）才算失败。
+        offsets = [line for line in output.splitlines() if re.search(r"fuzz|FAILED|malformed", line, re.I)]
         results.append({"target": name, "patch": item["path"], "exit_code": p.returncode,
                         "rejects": rejects, "offsets_or_errors": offsets})
         shutil.copytree(tree, args.out / "patched" / name)
