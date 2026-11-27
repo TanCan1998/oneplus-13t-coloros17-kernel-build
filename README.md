@@ -1,7 +1,8 @@
-# OnePlus 13T ColorOS 17（国行）内核云端构建（SukiSU / 原生 SUSFS）
+# OnePlus 13T ColorOS 17（国行）内核云端构建（SukiSU Nova / 原生 SUSFS）
 
-在免费 GitHub runner 上，用一加官方源码与官方构建入口编译 **一加 13T 国行 ColorOS 17**（PKX110 / sun / sm8750）
-内核，把 SukiSU 编进内核，并可选地集成**原生 SUSFS**（编进内核，不是 LKM）。
+在免费 GitHub runner 上，用一加官方源码与官方构建入口编译 **一加 13T 国行 ColorOS 17**（PKX110 / sun / sm8750）内核：
+SukiSU 采用 **Nova `builtin-new`** 并编进内核，原生 **SUSFS v2.4.0** 一并编入，同时启用
+**KPM、版本信息自定义、AVC 日志伪装** 三项扩展。对应管理器包名为 `com.sukisu.nova`。
 
 > **适用系统：ColorOS V17.0.0，国行 CN 版本（`PKX110_17.0.0.104(CN01)`）。**
 > **不适用于国际版 / OxygenOS 机型，也不保证适用于 16.x 或其他 sm8750 设备。**
@@ -21,8 +22,10 @@
 | CLO 侧依赖版本 | 标签 `clo-deps-16.0.10.500`（7 个原站包的镜像，见 `checksums.txt`） |
 | 依赖总数 | 35（3 个 OnePlusOSS + 25 个 CodeLinaro GitHub 镜像 + 7 个 codelinaro 原站） |
 | 内核版本串 | `6.6.118-android15-8-o-4k`，4K 页，Android clang 11368308 / 18.0.0（r510928） |
-| SukiSU | `SukiSU-Ultra/SukiSU-Ultra` @ `7ea0dd2b09bfc60e6b51a6a93fc9f49b349a9b2a` |
-| SUSFS 上游 | `cctv18/susfs4oki` @ `3f6aae536724af0df3dfa15f932034d14a5dbc5c`（`oki-android15-6.6`） |
+| SukiSU | `SukiSU-Nova/SukiSU-Nova` @ `5a3ec4145059`（`builtin-new`） |
+| SUSFS 上游 | `cctv18/susfs4oki` @ `c7f303f504b3`（`oki-android15-6.6`，v2.4.0） |
+| 内置扩展 | KPM、版本信息自定义（`version_spoof`）、AVC 日志伪装（`avc_spoof`） |
+| 管理器 | SukiSU Nova，包名 `com.sukisu.nova`（本仓库不打包 APK） |
 
 固定清单以 `susfs-native.lock.json`、`susfs-inputs.lock.json`、`deps.json`、`checksums.txt` 为准；
 每个文件的 SHA256 都记录在锁文件里，构建时逐一核对，不匹配即失败。
@@ -45,13 +48,28 @@
 | 一加 13T **国际版 / OxygenOS** | **不适用**（分区布局、vbmeta、模块签名与国行不同） |
 | 其他 sm8750 机型（13、13R 等） | **不适用**，机型耦合（sun devicetree） |
 
+### 内核里启用了什么
+
+- **KPM**：`CONFIG_KPM=y`。Nova 的 Kconfig 改为 `depends on 64BIT` 且默认 y——common 树的配置阶段还看不到
+  `CONFIG_KSU`，沿用 `depends on KSU` 会让整项被丢弃；KPM 自身 `select KALLSYMS/KALLSYMS_ALL`。
+  运行期经 `ksu_handle_sys_reboot` 钩子转发，入口符号为 `do_kpm`。
+  注意：**编进内核只代表桥接就绪**，要让 `kpm supported=1` 还需管理器把 KernelPatch 载荷 `kpimg`
+  注入当前槽位 boot 并重新刷入（见下文「KPM 使用」）。
+- **版本信息自定义**：Nova 自带 `extension/version_spoof.c`，导出 `ksu_extension_version_spoof_io/wipe`，无需额外改动。
+- **AVC 日志伪装**：`feature/avc_spoof.c`（builtin-new 已包含），注册 `KSU_FEATURE_AVC_SPOOF=10003`，
+  改写入口 `ksu_avc_spoof_rewrite_tsid`。
+- **SUSFS**：`CONFIG_KSU_SUSFS=y`，`CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER` 默认 y（v2.4.0 已提供对应实现）。
+- 内置 Zygisk（NyaZygisk）属于管理器/用户态组件，不在本内核构建范围内。
+
 ## 这套流程的依据
 
-全部来自本地已验证的实测结果：
+全部来自本地与云端已验证的实测结果：
 
-- 官方 manifest 的 **35 个依赖**，共 3.01 GiB，官方入口 `oplus_build_kernel.sh sun perf`，源码零修改。
-- 本地 8 核全量构建耗时 **3h12m12s**，退出码 0，产出 `boot.img` 100,663,296 字节（与出厂 boot_a 同尺寸）。
-- 该未改基线内核已在真机验证：`boot_completed=1`、602 个模块加载、`disagrees about version` 为 0。
+- 官方 manifest 的 **35 个依赖**，共 3.01 GiB，官方入口 `oplus_build_kernel.sh sun perf`；
+  一加源码零修改，SukiSU 与 SUSFS 以补丁方式接入。
+- 云端实测 run `45949122615`（提交 `c2467e53`）：全流程 **47m35s** 成功，产出 `boot.img` 与 `Image`。
+- 本地 8 核全量基线耗时 **3h12m12s**，退出码 0，产出 `boot.img` 100,663,296 字节（与出厂 boot_a 同尺寸）。
+- 未改基线内核已在真机验证：`boot_completed=1`、602 个模块加载、`disagrees about version` 为 0。
 
 ## 关键取舍
 
@@ -65,66 +83,81 @@
 rfkill → cfg80211 → mac80211 → qca_cld3 整链加载失败（WiFi/蓝牙不可用）。关掉后整链放行，
 代价是**减少导出保护**，属于已验证基线的取舍。
 
-**配置门禁**：编译前单独 `bazel build //common:kernel_aarch64_config //msm-kernel:sun_perf_config`，
-检查两份 `.config` 都有 KSU/SUSFS 所需选项、`CONFIG_MODULE_SIG_PROTECT` 未开启，不满足立即失败，
-避免白跑 3 小时。
+**跳过 16K 变体**：`dist16k` 在整条流程里没有消费者——打包、`prepare_vendor.sh`、产物校验与上传清单都只读 4K `dist/`。
+`patches/nova/skip-16k.patch` 通过环境变量 `KSU_SKIP_16K` 让 `build_with_bazel.py` 不再枚举 16K 目标，
+实测省 25–40 分钟；只影响目标枚举，不碰内核配置、KPM、SUSFS 或 KMI。
 
-**两棵树都要打补丁**：`sus16k_perf_dist` 的 boot.img 来自 msm-kernel 树；只改 common 会以
-17 个 `susfs_*` 符号未定义在链接阶段失败（run 39532454585 即此原因）。
+**编译前熔断**：`ci-check-susfs-config.py` 在真正编译前核对两份 `.config` 的 19 项必需开关，
+并额外检查 `KALLSYMS`、`KALLSYMS_ALL`、`CFI_CLANG`、`KPM`、`KSU_SUSFS` 五项扩展依赖。
+KPM 运行期要靠 CFI 保留的 `__arm64_sys_truncate` 找入口，CFI 被关就失效——这类错误 5 秒内报出，不白跑一小时。
+
+**两棵树都要打补丁**：`sun_perf_dist` 的 boot.img 来自 msm-kernel 树；只改 common 会以
+`susfs_*` 符号未定义在链接阶段失败（run 39532454585 即此原因）。v2.4.0 的补丁覆盖 27 个文件，
+另外 `fs/susfs.c`、`include/linux/susfs{,_def}.h` 是独立源文件，需按锁文件哈希单独复制进两棵树。
+
+**Nova 的 reboot 钩子**：Nova 的 `ksu_handle_sys_reboot()` 对非 KSU magic 返回 `-EINVAL`，
+不能照搬 Ultra 的「负值即已处理」。`patches/nova/ksu-avc-kpm.patch` 改为仅在 `magic1 == 0xDEADBEEF`
+时接管，且只在返回非负值时短路，避免普通 `reboot()` 被拦成 `-EINVAL`。
 
 ## 工作流
 
 | 工作流 | 用途 |
 |---|---|
-| `build-susfs-kernel` | 固定源码门禁 → 装配 35 依赖 → 安装原生 SUSFS → 双配置门禁 → 编译 → 产物与符号复验 |
+| `build-susfs-kernel` | 单个 job：固定源码门禁 → 装配 35 依赖 → 安装原生 SUSFS → 双配置门禁 → 编译 → 产物与扩展复验 |
 | `build-ksu-kernel` | 早期 SukiSU 内置版本，`enable_susfs` 可选 |
 | `susfs-preflight` / `susfs-msm-probe` | 只读探测：补丁可应用性、msm-kernel 目标文件与 common 是否逐字节相同 |
 | `watch-official-source` | 每日只读巡检：官方 13T 分支 HEAD 是否偏离锁定提交、是否出现 17.x 分支；有变化开 issue（`source-watch` 标签） |
 
 手动触发 `build-native-susfs-kernel`，`skip_build=true` 只做装配与配置验证（约 15–25 分钟）。
-产物含 `boot.img`、`Image`、`System.map`、`SHA256SUMS.txt`、两份 `.config` 与全部构建/复验日志。
+产物 `kernel-susfs-out`（约 31 MiB）含 `boot.img`、`Image`、`System.map`、`SHA256SUMS.txt`、两份 `.config`、
+`Module.symvers` / `vmlinux.symvers` / `modules.builtin`，以及装配、安装、配置、编译与复验日志。
+
+## KPM 使用
+
+1. 刷入本仓库产物后，Root 与 SUSFS 正常，但 `kpm supported` 仍为 0：内核只有桥接，还没有 KernelPatch 载荷。
+2. 打开 SukiSU Nova 管理器的 KPM 修补入口（`PatchKpmBoot`）。未选择外部文件时，它读取**当前槽位**的 boot，
+   因此可以直接基于本仓库的自定义内核打补丁，不需要先恢复官方原镜像。
+3. 把生成的新 boot 刷回同一槽位并重启，`kpm supported` 变为 1，之后即可安装 `.kpm`。
+4. 补丁会改变 boot 摘要；回滚仍使用刷机前的备份。
 
 ## 已验证的结果
 
-### 一、静态：构建与产物复验（run 39595181403，提交 `197ba2d`）
+### 一、静态：构建与产物复验（run `45949122615`，提交 `c2467e53`）
 
-- 独立复验 **526 项检查**通过：两个 ZIP 的字节数/摘要/CRC 一致；在新建目录重放 common、msm-kernel、
-  SukiSU 补丁零拒绝、零 fuzz、零偏移；common 与 msm-kernel 各 69 项源码门禁通过。
-- boot 为 Android v4 头，96 MiB，空 ramdisk；其中嵌入的内核与独立 `Image` 逐字节一致。
-- 从实际 ARM64 Image 解出内嵌配置，与归档配置分别通过所需选项与 4K 页检查。
-- System.map 独立计数：KSU 336 个符号、SUSFS/桥接 79 个；新接口 `susfs_is_sus_ino` 有已链接定义。
+- 全流程 47m35s（06:00:29–06:48:04 UTC），单 job 成功；产物 `kernel-susfs-out` 32,541,088 字节。
+- `ci-verify-extensions.py` 在 System.map 中命中全部扩展符号：`do_kpm`、`ksu_extension_kpm_io/get`、
+  `ksu_extension_version_spoof_io/wipe`、`ksu_avc_spoof_init/late_init`、`ksu_avc_spoof_rewrite_tsid`。
+- 配置门禁 19 项 × common/msm-kernel 两棵树全部为 y，`MODULE_SIG_PROTECT` 未开启；
+  `susfs_add_sus_path` 等 SUSFS 链接符号存在。
+- boot 为 Android v4 头、96 MiB、空 ramdisk；其中嵌入的内核与独立 `Image` 逐字节一致。
 
-| 文件 | 字节 | SHA256 |
-|---|---:|---|
-| boot.img | 100663296 | `5df9c1dde13ab90f26ec39fc0f318b297cd674a06e25eb746a9b83822a6288ff` |
-| Image | 36538880 | `1920f722896c0262e35d1a0be14ed1150d607fb7d88619fa8afb093222737699` |
-| System.map | 4807243 | `705a748edac09f85dbb5f386383c94d61d0ace8ce3e28d88a9959c2ea71b27b8` |
+### 二、刷机与启动
 
-### 二、刷机：只写 boot_b 并成功开机
+- 仅执行 `fastboot flash boot_b` 与 `fastboot reboot`，未写其他分区、未切槽、未解锁、未清数据。
+- 第一版 Nova 镜像 `18f321c4ac9ca8a3dc3664bd846c8faeef9dfce1e6bc08058798fab544f3fcea`（100,663,296 B）正常开机。
+- 第二版 KPM 镜像 `17ee02f3281a027c058b1151f27e1e7294fd33040019586c7d7b6fd5bc9ff8b5`（同尺寸）同样正常开机，
+  `sys.boot_completed=1`，槽位仍为 `_b`，`/dev/block/by-name/boot_b` 摘要与镜像一致。
+- 系统 `PKX110_17.0.0.104(CN01)`，内核串 `6.6.118-android15-8-o-4k`。
+- 回滚镜像为升级前的 SukiSU Ultra 构建 `5df9c1dde13ab90f26ec39fc0f318b297cd674a06e25eb746a9b83822a6288ff`。
 
-- 刷前：fastbootd `current-slot=b`、`is-userspace=yes`、`snapshot-update-status=none`；boot_b 分区 96 MiB；
-  原 boot_b 已完整备份（SHA256 `f4b921ac0c58ec9611131fca1252e3297908d734bdae40df1647b1c2f660a980`）。
-- 实际只执行 `fastboot flash boot_b boot.img` 与 `fastboot reboot`，未写其他分区、未切槽、未解锁、未清数据。
-- 刷后：`sys.boot_completed=1`、槽位仍 `_b`、`uname -r` 为 `6.6.118-android15-8-o-4k`、
-  `su -c id` 返回 `uid=0(root)` / `context=u:r:ksu:s0`、`/dev/block/by-name/boot_b` 复算摘要等于新镜像。
+### 三、运行（真机实测）
 
-### 三、运行：SUSFS 接口与 Root 读取
+- KPM：`supported=1`、扩展值 `1`；`ksud kpm version` 为 `3584 (19:40:23 Oct 26 2026)`；
+  已装 `.kpm` 数量为 0（尚未安装）。
+- SUSFS：`v2.4.0`，`builtin`，`GKI`；`version_spoof` 可用，`avc_spoof (10003)` 已启用并出现 tsid 改写记录。
+- Root/模块：`ksud 4.2.1-24-gdecfaa5b`，11 个自定义模块启用；内置 Zygisk 为 NyaZygisk `v2.5`，
+  状态 `fully_active`，zygote 已注入，`playintegrityfix`、`Vector`、指纹支付模块均已注入。
+- 兼容性：10 个关键 vendor 模块（`msm_drm`、`qca_cld3_peach_v2`、`camera`、`camera_extension`、`btpower`、
+  `ipam`、`rmnet_core`、`cnss2`、`cfg80211`、`wlan_firmware_service`）全部加载；WiFi 连接 5G、相机可用；
+  `223.5.5.5` 与 `www.baidu.com` 均 0% 丢包。
 
-- SUSFS 接口 `status=true`、`version=v2.3.0`。
-- MT 管理器成功读取受保护模块的说明文件，源文件 SHA256 前后不变；Root shell 读取受保护二进制正常。
+### 四、隐藏效果（历史测试，未在 Nova 上复测）
 
-### 四、运行：隐藏效果（未通过，样本有局限）
-
-- 经同意临时标记一个 `/sdcard/Android/data/...` 目录后，Duck Detector 的两种目录旁路命中数前后均为 **9→9**。
+- 早期 Ultra 基线上用 Duck Detector 做过一次只读对照：经同意临时标记一个 `/sdcard/Android/data/...` 目录后，
+  两种目录旁路命中数前后均为 **9→9**。
 - 但目标目录在标记前就未被普通 Directory Listing 命中，**缺少阳性基线**，因此不能据此断言 readdir 增量无效，
   也不能宣称隐藏已通过验收。
-- 单目录临时标记未持久化，随重启清除；持久配置未被改动。
-
-### 五、补写本文件时的复测（只读）
-
-- 系统：**ColorOS V17.0.0，国行**，`PKX110_17.0.0.104(CN01)`，`ro.build.version.oplusrom=V17.0.0`，
-  市场名「一加 13T」，locale `zh-CN`；fingerprint `OnePlus/PKX110/OP60F5L1:17/...`。
-- 槽位 `_b`，`/dev/block/by-name/boot_b` 摘要仍为 `5df9c1dd…`（即上面的 v4 镜像），`su` 正常，内核串不变。
+- 该临时标记未持久化，随重启清除；持久配置未被改动。
 
 **以上都不代表**：长期稳定、完整 ABI 兼容、所有 Root 应用可用、任意应用检测通过或服务端风控放行。
 
@@ -165,7 +198,8 @@ fastboot reboot
   模块签名密钥，只存在于 runner 的临时工作目录，不进仓库、不上传产物，每次构建都不同。
 - AVB footer 使用 **AOSP testkey**（公开测试密钥，非机密）。
 - 一加私钥（vbmeta 里 `boot` 链的公钥对应）**不可得**，这也是必须先禁用 vbmeta 校验的原因。
-- 管理器身份由 SukiSU 源码内固定的包名/签名参数决定，仓库不存储任何证书文件。
+- 管理器身份由 SukiSU Nova 源码内固定的包名 `com.sukisu.nova` 与签名参数决定，仓库不存储任何证书文件；
+  KPM 载荷 `kpimg` 由管理器自带，不需要仓库提供私钥或签名。
 
 ## 风险
 
@@ -173,7 +207,8 @@ fastboot reboot
 - 刷机前请自行备份 `vbmeta`、`boot`，并确认能通过 fastboot 恢复；本仓库没有任何回滚自动化。
 - 禁用 vbmeta/dm-verity 后完整性校验失效；关闭 MODULE_SIG_PROTECT 减少导出保护。
 - 源码是 16.0.0 分支，系统是 ColorOS 17：vendor 模块、ABI 与安全补丁差异未逐项核对。
-- 隐藏能力已被实测**部分未通过**（见上文第四节），不要假定任何 Root/Hook 检测已被完全规避。
+- KPM 编入内核不等于开箱可用：还需管理器注入 `kpimg` 并重新刷 boot；`.kpm` 模块本身的质量与稳定性不受本仓库控制。
+- 隐藏能力只在早期基线上做过有局限的实测（见上文第四节），不要假定任何 Root/Hook 检测已被完全规避。
 - 源码检查通过不等于编译通过；编译通过不等于可开机、隐藏有效、ABI 完整兼容或长期稳定。
 
 ## 说明
